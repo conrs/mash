@@ -98,6 +98,14 @@ var COMMANDS =
 			{				
 				window.open("ma"+"ilto:m"+"@t"+"t.con.rs");
 			}
+		},
+		{
+			name: "fork",
+			about: "fork this project on github",
+			execute: function()
+			{
+				window.open("https://github.com/omgz0r/mash");
+			}
 		}
 	],
 

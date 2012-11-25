@@ -4,8 +4,7 @@
 	name: ""
 	about: about string for help
 	execute: function
- 
-	can use cout(); 
+
 
 	TODO: eventually modify output properly for those long-running async 
 	commands.
@@ -23,7 +22,7 @@ var COMMANDS =
 			{
 				var padding_width = console_width / 2;
 
-				cout("mash, version 1.0");
+				io.output.write("mash, version 1.0");
 
 				for(var command in COMMANDS.find)
 				{
@@ -39,7 +38,7 @@ var COMMANDS =
 						line += about_string.substring(0, console_width - padding_width);
 						about_string = about_string.substring(console_width - padding_width);
 
-						cout(line);
+						io.output.write(line);
 
 						line = "";
 					}
@@ -51,7 +50,7 @@ var COMMANDS =
 			about: "echos user-specified text",
 			execute: function(arguments)
 			{
-				cout(sanitize(arguments));
+				io.output.write(sanitize(arguments));
 			}
 		},
 		{
@@ -68,14 +67,14 @@ var COMMANDS =
 
 				if(name.toLowerCase() == "matt")
 				{
-					cout("No.");
+					io.output.write("No.");
 				} else if (name == "")
 				{
-					cout("Please specify a username.");
+					io.output.write("Please specify a username.");
 				}
 				else
 				{
-					cout("Welcome, " + name);
+					io.output.write("Welcome, " + name);
 					userName = name;
 					preCommandString = "con.rs:~ " + userName + "$ ";
 					$.cookie("user", userName);
@@ -105,6 +104,22 @@ var COMMANDS =
 			execute: function()
 			{
 				window.open("https://github.com/omgz0r/mash");
+			}
+		},
+		{
+			name: "wall",
+			about: "send a message to all users",
+			execute: function(args)
+			{
+				var data = {
+					"user": userName,
+					"message": args
+				};
+				$.ajax(
+				{
+					url: "backend/wall.php",
+					data: data
+				});
 			}
 		}
 	],

@@ -1,10 +1,8 @@
-var output;
-var input;
+
 
 var userName;
 var preCommandString;
 
-var overflow_id = "command_overflow";
 
 
 var cursorVisible = true;
@@ -13,9 +11,12 @@ var console_width = 80;
 
 $(document).ready(function()
 {
-	output = $("#console_output");
+	var pusher = new Pusher('c5ba61579edbf533d0fe'); 
 
-	output.html("");
+
+	io.socket = pusher.subscribe('comm');
+	io.output.clear();
+
 	var last_seen = $.cookie("last-seen");
 	userName = $.cookie("user");
 
@@ -26,14 +27,28 @@ $(document).ready(function()
 
 	printWelcome(last_seen);
 
+	fakePush();
+
 	$.cookie("last-seen", new Date());
 
 });
+
+function fakePush()
+{
+	io.socket.bind('wall', function(data) {
+		console.log(data);
+		io.output.write("Broadcast message from");
+		io.output.write(data.user);
+		io.output.write(" ");
+		io.output.write(data.message);
+	});
+}
 
 $(document).click(function(e)
 {
 	$("#text_catcher").focus();
 });
+
 $(document).bind('keyup', function(e)
 {
 	val = "";
@@ -62,7 +77,7 @@ function printWelcome(last_seen)
 	else
 		last_seen_text = "Last login: " + formatDateForTerminal(last_seen) + " from intertubes";
 	
-	cout(last_seen_text);
+	io.output.write(last_seen_text);
 }
 
 function interpret(command_string)
@@ -80,7 +95,7 @@ function interpret(command_string)
 	arguments = command_string.substring(spaceIndex + 1);
 
 
-	cout(preCommandString + sanitize(command_string));
+	io.output.write(preCommandString + sanitize(command_string));
 
 	execute(command, arguments)
 }
@@ -95,7 +110,7 @@ function execute(command, arguments)
 		cmd.execute(arguments);
 	} else if(command != "")
 	{
-		cout("-mash: " + sanitize(command) + ": command not found")
+		io.output.write("-mash: " + sanitize(command) + ": command not found")
 	}
 
 	$(window).scrollTop($(document).height());
@@ -103,34 +118,7 @@ function execute(command, arguments)
 
 function preparePrompt()
 {
-	input = $("#text_catcher");
-	preCommandString = "con.rs:~ " + userName + "$ ";
-	input.focus();
-
-	input.bind('keyup', function(e)
-	{
-		var keyCode = e.keyCode;
-		var val = $.trim($(this).val());
-		fillPrompt(preCommandString + sanitize(val));
-
-		if(keyCode == 32)
-		{
-			// Manually increase width so cursor appears properly.
-			$("#user_prompt").append("&nbsp;");
-		} else if (keyCode == 13)
-		{
-			interpret(val);
-			$(this).val("");
-			$("#"+overflow_id).remove();
-			$("#user_prompt").html(preCommandString);
-		}
-
-		e.stopPropagation();
-	});
-
-
-	$("#user_prompt").html(preCommandString);
-	$("#console_command").append(input);
+	io.input.prepare();
 
 	setInterval(function()
 	{
@@ -181,20 +169,6 @@ function fillPrompt(command_string)
 function sanitize(str)
 {
 	return str.replace(/</g,'&lt;').replace(/>/g, '&gt;');
-}
-
-function cout(str)
-{
-	while(str.length > 0)
-	{
-		var line = str.substring(0, console_width);
-
-		$(output).append(line);
-		$(output).append("\n");
-
-		str = str.substring(console_width);
-	}
-	
 }
 
 function formatDateForTerminal(date)

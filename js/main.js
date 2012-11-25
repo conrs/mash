@@ -37,10 +37,10 @@ function fakePush()
 {
 	io.socket.bind('wall', function(data) {
 		console.log(data);
-		io.output.write("Broadcast message from");
-		io.output.write(data.user);
+		io.output.write("Broadcast message from " + data.user);
 		io.output.write(" ");
 		io.output.write(data.message);
+		io.output.write(" ");
 	});
 }
 
@@ -112,8 +112,6 @@ function execute(command, arguments)
 	{
 		io.output.write("-mash: " + sanitize(command) + ": command not found")
 	}
-
-	$(window).scrollTop($(document).height());
 }
 
 function preparePrompt()
@@ -168,7 +166,7 @@ function fillPrompt(command_string)
 
 function sanitize(str)
 {
-	return str.replace(/</g,'&lt;').replace(/>/g, '&gt;');
+	return str.replace(/\&/g, "&amp;").replace(/</g,'&lt;').replace(/>/g, '&gt;');
 }
 
 function formatDateForTerminal(date)

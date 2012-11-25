@@ -87,7 +87,7 @@ var COMMANDS =
 			about: "clears the console output", 
 			execute: function()
 			{
-				output.html("");
+				io.output.clear();
 			}
 		},
 		{
@@ -95,7 +95,10 @@ var COMMANDS =
 			about: "send an email to Matt, your favourite person ever.",
 			execute: function()
 			{				
-				window.open("ma"+"ilto:m"+"@t"+"t.con.rs");
+				var link = $("<a></a>");
+				link.attr("href", "ma"+"ilto:m"+"@t"+"t.con.rs");
+				link.html("m"+"@t"+"t.con.rs");
+				io.output.writeElement(link);
 			}
 		},
 		{

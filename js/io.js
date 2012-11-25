@@ -20,6 +20,12 @@ var io =
 	socket: null,
 	output: 
 	{
+		writeElement: function(element)
+		{
+			$("#"+output_id).append(element);
+			$("#"+output_id).append("<br/>");
+		},
+
 		write: function(str)
 		{
 			while(str.length > 0)
@@ -31,6 +37,8 @@ var io =
 
 				str = str.substring(console_width);
 			}
+
+			$(window).scrollTop($(document).height());
 		},
 		clear: function()
 		{
@@ -57,7 +65,7 @@ var io =
 				if(keyCode == 32)
 				{
 					// Manually increase width so cursor appears properly.
-					$("#" + input_id).append("&nbsp;");
+					$("#" + prompt_id).append("&nbsp;");
 				} else if (keyCode == 13)
 				{
 					io.input.lineEntered();

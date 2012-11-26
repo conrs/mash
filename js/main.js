@@ -39,7 +39,7 @@ function fakePush()
 		console.log(data);
 		io.output.write("Broadcast message from " + data.user);
 		io.output.write(" ");
-		io.output.write(data.message);
+		io.output.write(sanitize(data.message));
 		io.output.write(" ");
 	});
 }
@@ -163,6 +163,7 @@ function fillPrompt(command_string)
 	}
 
 }
+
 
 function sanitize(str)
 {

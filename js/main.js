@@ -11,7 +11,7 @@ var console_width = 80;
 
 $(document).ready(function()
 {
-	var pusher = new Pusher('c5ba61579edbf533d0fe'); 
+	var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
 
 
 	io.socket = pusher.subscribe('comm');

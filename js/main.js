@@ -15,7 +15,7 @@ $(document).ready(function()
 
 
 	io.socket = pusher.subscribe('comm');
-	io.output.clear();
+	//io.output.clear();
 
 	var last_seen = $.cookie("last-seen");
 	userName = $.cookie("user");

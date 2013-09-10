@@ -1,25 +1,28 @@
-/* 
-Filesystem: Keeps track of current working directory (tied into prompt).
-
-First stabs: Files will either contain files or execute a function. Both should have .open() functions; the behavior of a directory
-will modify the current working directory while the behaviour of a normal file will simply output its "contents". 
-
-Alt: we forward commands to files if they have to do with the filesystem. e.g.
-
-ls (will behave on the current directory if no args), so have the filesystem implement a "ls" function. 
-cat (needs an argument) =---------------------------- ^ "cat"
-
-cd modifies the filesystems current directory. relative paths. etc. 
-TAB COMPLETION WOULD BE COOL....
-
-
-*/
 
 
 var fs = 
 {
-	pwd: "/home/matt/",
-	homedir: "/home/matt/",
+	stack: [],
+	execute: function(cmd)
+	{
+		switch(cmd)
+		{
+			case "email":
+				alert("wut");
+
+			break;
+
+
+			default:
+			 	return false;	
+		}
+
+		return true;
+	},
+	pwd: function()
+	{
+		return "/" + fs.stack.join("/") + "/";
+	},
 	cd: function(path)
 	{
 

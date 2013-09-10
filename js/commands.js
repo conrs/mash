@@ -20,7 +20,7 @@ var COMMANDS =
 			about: "this help menu",
 			execute: function()
 			{
-				var padding_width = console_width / 2;
+				var padding_width = os.CONSOLE_WIDTH / 2;
 
 				io.output.write("mash, version 1.0");
 
@@ -35,8 +35,8 @@ var COMMANDS =
 						while(line.length < padding_width)
 							line += " ";
 
-						line += about_string.substring(0, console_width - padding_width);
-						about_string = about_string.substring(console_width - padding_width);
+						line += about_string.substring(0, os.CONSOLE_WIDTH - padding_width);
+						about_string = about_string.substring(os.CONSOLE_WIDTH - padding_width);
 
 						io.output.write(line);
 
@@ -115,7 +115,7 @@ var COMMANDS =
 			execute: function(args)
 			{
 				var data = {
-					"user": userName,
+					"user": os.currentUser,
 					"message": args
 				};
 				$.ajax(
@@ -134,3 +134,5 @@ for(var i in COMMANDS.raw)
 {
 	COMMANDS.find[COMMANDS.raw[i].name] = COMMANDS.raw[i];
 }
+
+

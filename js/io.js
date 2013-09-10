@@ -17,6 +17,19 @@ var prompt_id = "user_prompt";
 
 var io = 
 {
+	init: function()
+	{
+		// Weird but convenient placement for the 'wall' listener.
+		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
+		io.socket = pusher.subscribe('comm');
+
+		io.socket.bind('wall', function(data) {
+			io.output.write("Broadcast message from " + data.user);
+			io.output.write(" ");
+			io.output.write(sanitize(data.message));
+			io.output.write(" ");
+		});	
+	},
 	socket: null,
 	output: 
 	{
@@ -30,12 +43,12 @@ var io =
 		{
 			while(str.length > 0)
 			{
-				var line = str.substring(0, console_width);
+				var line = str.substring(0, os.CONSOLE_WIDTH);
 
 				$("#"+output_id).append(line);
 				$("#"+output_id).append("\n");
 
-				str = str.substring(console_width);
+				str = str.substring(os.CONSOLE_WIDTH);
 			}
 
 			$(window).scrollTop($(document).height());
@@ -51,7 +64,7 @@ var io =
 		{
 			input = $("#" + input_id);
 			
-			preCommandString = "con.rs:~ " + userName + "$ ";
+			preCommandString = "con.rs:~ " + os.currentUser + "$ ";
 			
 			input.focus();	
 			io.input.prompt(preCommandString);

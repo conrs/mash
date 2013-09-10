@@ -1,48 +1,44 @@
+var os = 
+{
+	CONSOLE_WIDTH: 80,
+	currentUser: null,
 
 
-var userName;
-var preCommandString;
+	init: function()
+	{
+		var last_seen = $.cookie("last-seen");
+		var userName = $.cookie("user");
+		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
 
 
+		io.socket = pusher.subscribe('comm');
 
-var cursorVisible = true;
+		if(userName == null)
+			userName = "guest"
 
-var console_width = 80;
+		os.currentUser = userName;
+
+		preparePrompt();
+
+		printWelcome(last_seen);
+
+		// Weird place for this half of wall functionality. Commands may need a constructor. 
+		io.socket.bind('wall', function(data) {
+			io.output.write("Broadcast message from " + data.user);
+			io.output.write(" ");
+			io.output.write(sanitize(data.message));
+			io.output.write(" ");
+		});
+
+		$.cookie("last-seen", new Date());
+	}
+};
 
 $(document).ready(function()
 {
-	var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
-
-
-	io.socket = pusher.subscribe('comm');
-	//io.output.clear();
-
-	var last_seen = $.cookie("last-seen");
-	userName = $.cookie("user");
-
-	if(userName == null)
-		userName = "guest"
-
-	preparePrompt();
-
-	printWelcome(last_seen);
-
-	fakePush();
-
-	$.cookie("last-seen", new Date());
-
+	os.init();
 });
 
-function fakePush()
-{
-	io.socket.bind('wall', function(data) {
-		console.log(data);
-		io.output.write("Broadcast message from " + data.user);
-		io.output.write(" ");
-		io.output.write(sanitize(data.message));
-		io.output.write(" ");
-	});
-}
 
 $(document).click(function(e)
 {
@@ -97,21 +93,30 @@ function interpret(command_string)
 
 	io.output.write(preCommandString + sanitize(command_string));
 
+	// Clear prompt while processing command.
+
+	$("#user_prompt").html("");
+
 	execute(command, arguments)
 }
 
 function execute(command, arguments)
 {
-	console.log("command: '" + command + "'");
-
-	var cmd = COMMANDS.find[command];
-	if(cmd)
+	// Try and resolve with filesystem. I don't like this but I want to see how it works before hating it fully. 
+	if(! fs.execute(command, arguments) )
 	{
-		cmd.execute(arguments);
-	} else if(command != "")
-	{
-		io.output.write("-mash: " + sanitize(command) + ": command not found")
+		// System level command searching. Should be in a system object or something, but lazzzzysauce.
+		var cmd = COMMANDS.find[command];
+		if(cmd)
+		{
+			cmd.execute(arguments);
+		} else if(command != "")
+		{
+			io.output.write("-mash: " + sanitize(command) + ": command not found")
+		}
 	}
+
+	
 }
 
 function preparePrompt()
@@ -120,12 +125,7 @@ function preparePrompt()
 
 	setInterval(function()
 	{
-		if(cursorVisible)
-			$("#cursor").hide();
-		else
-			$("#cursor").show();
-
-		cursorVisible = !cursorVisible;
+		$("#cursor").toggle();
 	}, 600);
 
 }
@@ -138,8 +138,8 @@ function fillPrompt(command_string)
 
 	while(command_string.length > 0)
 	{
-		command_line = command_string.substring(0, console_width);
-		command_string = command_string.substring(console_width);
+		command_line = command_string.substring(0, os.CONSOLE_WIDTH);
+		command_string = command_string.substring(os.CONSOLE_WIDTH);
 
 		if(command_string.length == 0)
 		{

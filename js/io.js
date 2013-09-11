@@ -68,6 +68,7 @@ var io =
 		{
 			$("#"+output_id).append(element);
 			$("#"+output_id).append("<br/>");
+			$(window).scrollTop($(document).height());
 		},
 		write: function(str)
 		{

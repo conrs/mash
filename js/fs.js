@@ -307,7 +307,35 @@ var blog =
 	}
 }
 
+var about = 
+{
+	handle: "about.txt",
+	children: {},
+	type: "file",
+	contents: "",
+	init: function()
+	{	
+	},
+	destroy: function()
+	{
+
+	},
+	cat: function()
+	{	
+		io.output.writeElement($("#about_holder").html());
+	},	
+	execute: function(command, args)
+	{
+		return false;
+	},
+	get: function(handle)
+	{
+
+	}
+}
+
 fs.addRootItem(blog);
+fs.addRootItem(about);
 
 var other = jQuery.extend(true, {}, blog);
 function stripHTMLExceptA(html)

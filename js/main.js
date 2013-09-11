@@ -18,14 +18,6 @@ var os =
 
 		printWelcome(last_seen);
 
-		// Weird place for this half of wall functionality. Commands may need a constructor. 
-		io.socket.bind('wall', function(data) {
-			io.output.write("Broadcast message from " + data.user);
-			io.output.write(" ");
-			io.output.write(sanitize(data.message));
-			io.output.write(" ");
-		});
-
 		$.cookie("last-seen", new Date());
 	}
 };

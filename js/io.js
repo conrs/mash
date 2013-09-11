@@ -81,22 +81,49 @@ var io =
 			input.focus();	
 			io.input.prompt(preCommandString);
 
+			input.bind('keydown', function(e)
+			{
+				if(e.keyCode == 9)
+				{
+					e.preventDefault();
+				}
+			});
+
 			input.bind('keyup', function(e)
 			{
 				var keyCode = e.keyCode;
-				var val = $.trim($(this).val());
+				var val = $(this).val().replace(/^\s/, "");
 				fillPrompt(preCommandString + sanitize(val));
 
-				if(keyCode == 32)
-				{
-					// Manually increase width so cursor appears properly.
-					$("#" + prompt_id).append("&nbsp;");
-				} else if (keyCode == 13)
-				{
-					io.input.lineEntered();
-				}
+				cmd = val.split(" ")[0];
+				path = val.split(" ")[1];
 
+				switch(keyCode)
+				{
+					// ENTER 
+					case 13:
+						io.input.lineEntered();
+						break;
+
+					// UP ARROW
+					case 38:
+						break;
+
+					// TAB
+					case 9:
+						str = fs.tryComplete(path);
+						if(str)
+						{
+							newCommand = cmd + " " +  str;
+							fillPrompt(preCommandString + newCommand);
+							$(this).val(newCommand);
+						}
+						break;
+
+					// TODO: Left/Right Arrow Keys. Shit.
+				}
 				e.stopPropagation();
+				e.preventDefault();
 			});
 		},
 		// "Temporary" laziness

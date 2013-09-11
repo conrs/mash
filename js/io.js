@@ -23,6 +23,13 @@ var io =
 	{
 		// Weird but convenient placement for the 'wall' listener.
 		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
+
+
+		pusher.connection.bind("error", function(err) {
+				console.log("pusher error - disabling wall command");
+				COMMANDS.find["wall"] = null;
+		}); 
+
 		io.socket = pusher.subscribe('comm');
 
 		io.socket.bind('wall', function(data) {
@@ -31,6 +38,7 @@ var io =
 			io.output.write(sanitize(data.message));
 			io.output.write(" ");
 		});	
+
 	},
 	addHistory: function(command)
 	{

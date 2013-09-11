@@ -6,15 +6,13 @@ var os =
 	{
 		var last_seen = $.cookie("last-seen");
 		var userName = $.cookie("user");
-		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
-
-
-		io.socket = pusher.subscribe('comm');
 
 		if(userName == null)
 			userName = "guest"
 
 		os.currentUser = userName;
+
+		io.init();
 
 		preparePrompt();
 

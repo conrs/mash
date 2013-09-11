@@ -22,6 +22,7 @@ var fs =
 		obj = {};
 		obj.children = {};
 		obj.execute = function() { return false; };
+		obj.cat = function() { };
 		$.each(fs.root, function(i, value)
 		{
 			obj.children[value.handle] = value;
@@ -35,6 +36,7 @@ var fs =
 		console.log(args);
 		switch(cmd)
 		{
+			// TODO: Partial LS, ls behaviour for things not directories clean up.
 			case "ls": 
 				io.output.write("");
 
@@ -50,20 +52,28 @@ var fs =
 
 					if(element)
 					{
-						executed = element.execute("ls");
+						if(element.type == "directory")
+						{
+							executed = element.execute("ls");
 
-						if(!executed)
+							if(!executed)
+							{
+								executed = true;
+								$.each(element.children, function(i, value)
+								{
+									out = i;
+									if(value.type == "directory")
+										out += "/";
+
+									io.output.write(out);
+								});
+							}
+						} else
 						{
 							executed = true;
-							$.each(element.children, function(i, value)
-							{
-								out = i;
-								if(value.type == "directory")
-									out += "/";
-
-								io.output.write(out);
-							});
+							io.output.write(args);
 						}
+						
 					}
 						
 				}
@@ -166,7 +176,6 @@ var fs =
 				{
 					case "..":
 						temp_stack.pop();
-						break;
 					case "":
 					case ".":
 						break;
@@ -200,11 +209,17 @@ var fs =
 		stack = fs.getStackForPath(path);
 		element = null;
 
-		if(stack && stack.length > 0)
-			element = stack[stack.length - 1];
+		if(stack)
+		{
+			if(stack.length == 0)
+				element = fs.makeRootElement();
+			else
+				element = stack[stack.length - 1];
+		}
 
 		return element;
 	},
+	// TODO: doesn't work with relative pathing .. or .
 	tryComplete: function(path)
 	{
 		ret = false;
@@ -229,6 +244,8 @@ var fs =
 				if(child.handle.indexOf(incompleteHandle) == 0)
 				{
 					ret = child.handle;
+					if(child.type == "directory")
+						ret += "/";
 					return false; 
 				}
 			});
@@ -261,7 +278,7 @@ var blog =
 		     	{
 		     		console.log(entry);
 		     		handle = entry.title.replace(/\s/g, '_');
-		     		handle = handle.replace(/\W/g, '');
+		     		handle = handle.replace(/\W/g, '') + ".txt";
 		     		obj = {};
 		     		obj.handle = handle;
 		     		obj.contents = stripHTML(entry.content);
@@ -293,18 +310,24 @@ var blog =
 fs.addRootItem(blog);
 
 var other = jQuery.extend(true, {}, blog);
-function stripHTML(html)
+function stripHTMLExceptA(html)
 {
-   var tmp = document.createElement("DIV");
+  
 
    html = html.replace("<a", "&lt;a");
    html = html.replace("</a>", "&lt;/a&gt");
 
-   tmp.innerHTML = html;
-
-   return tmp.textContent || tmp.innerText || "cats";
+   return stripHTML(html);
 }
 
+function stripHTML(html)
+{
+	 var tmp = document.createElement("DIV");
+
+	 tmp.innerHTML = html;
+
+   	return tmp.textContent || tmp.innerText || "cats";
+}
 
 
 

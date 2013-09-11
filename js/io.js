@@ -17,6 +17,8 @@ var prompt_id = "user_prompt";
 
 var io = 
 {
+	history: [],
+	historyIndex: 0,
 	init: function()
 	{
 		// Weird but convenient placement for the 'wall' listener.
@@ -29,6 +31,35 @@ var io =
 			io.output.write(sanitize(data.message));
 			io.output.write(" ");
 		});	
+	},
+	addHistory: function(command)
+	{
+		io.history.push(command);
+		io.historyIndex = io.history.length;
+	},
+	historyUp: function()
+	{
+		ret = false;
+
+		if(io.historyIndex > 0)
+		{
+			io.historyIndex--;
+			ret = io.history[io.historyIndex];
+		}
+
+		return ret;
+	},
+	historyDown: function()
+	{
+		ret = "";
+
+		if(io.historyIndex != io.history.length)
+			io.historyIndex++;
+
+		if(io.historyIndex < io.history.length)
+			ret = io.history[io.historyIndex];
+
+		return ret;
 	},
 	socket: null,
 	output: 
@@ -44,7 +75,6 @@ var io =
 			{
 				var splitIndex = -1;
 				splitIndex = str.indexOf("\n");
-				console.log(splitIndex);
 
 				if(splitIndex <= 0 || splitIndex > os.CONSOLE_WIDTH)
 					splitIndex = os.CONSOLE_WIDTH;
@@ -68,7 +98,7 @@ var io =
 		clear: function()
 		{
 			$("#"+output_id).html("");
-		}
+		},
 	},
 	input: 
 	{
@@ -107,8 +137,24 @@ var io =
 
 					// UP ARROW
 					case 38:
+						cmd = io.historyUp();
+						if(cmd)
+						{
+							$(this).val(cmd)
+							fillPrompt(preCommandString + cmd);
+						}
+						else
+							fillPrompt(preCommandString + val);
 						break;
 
+					// DOWN ARROW
+					case 40:
+						cmd = io.historyDown();
+						
+						$(this).val(cmd);
+						fillPrompt(preCommandString + cmd);
+
+						break;
 					// TAB
 					case 9:
 						str = fs.tryComplete(path);
@@ -136,6 +182,7 @@ var io =
 					preCommandString = "con.rs:" + fs.pwd() + " " + os.currentUser + "$ ";
 					$("#" + input_id).val("");
 					$("#"+overflow_id).remove();
+					io.addHistory(val);
 					io.input.prompt(preCommandString);
 				}
 			}

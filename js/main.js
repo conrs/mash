@@ -2,8 +2,6 @@ var os =
 {
 	CONSOLE_WIDTH: 80,
 	currentUser: null,
-
-
 	init: function()
 	{
 		var last_seen = $.cookie("last-seen");
@@ -96,7 +94,7 @@ function interpret(command_string)
 
 	$("#user_prompt").html("");
 
-	execute(command, arguments)
+	execute(command, arguments);
 }
 
 function execute(command, arguments)

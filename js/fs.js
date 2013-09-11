@@ -212,7 +212,7 @@ var fs =
 
 		if(index != -1)
 		{
-			fuzzyPath = path.substring(0, index);
+			fuzzyPath = path.substring(0, index + 1);
 			incompleteHandle = path.substring(index + 1, path.length);
 		} else
 		{
@@ -234,7 +234,7 @@ var fs =
 			});
 		}
 		
-		return ret;
+		return fuzzyPath + ret;
 	}
 }
 
@@ -293,14 +293,16 @@ var blog =
 fs.addRootItem(blog);
 
 var other = jQuery.extend(true, {}, blog);
-
-other.handle = "cat";
-fs.addRootItem(other);
 function stripHTML(html)
 {
    var tmp = document.createElement("DIV");
+
+   html = html.replace("<a", "&lt;a");
+   html = html.replace("</a>", "&lt;/a&gt");
+
    tmp.innerHTML = html;
-   return tmp.textContent || tmp.innerText || "";
+
+   return tmp.textContent || tmp.innerText || "cats";
 }
 
 

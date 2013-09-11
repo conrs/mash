@@ -38,20 +38,32 @@ var io =
 			$("#"+output_id).append(element);
 			$("#"+output_id).append("<br/>");
 		},
-
 		write: function(str)
 		{
 			while(str.length > 0)
 			{
-				var line = str.substring(0, os.CONSOLE_WIDTH);
+				var splitIndex = -1;
+				splitIndex = str.indexOf("\n");
+				console.log(splitIndex);
+
+				if(splitIndex <= 0 || splitIndex > os.CONSOLE_WIDTH)
+					splitIndex = os.CONSOLE_WIDTH;
+
+				var line = str.substring(0, splitIndex);
 
 				$("#"+output_id).append(line);
 				$("#"+output_id).append("\n");
+					
 
-				str = str.substring(os.CONSOLE_WIDTH);
+				str = str.substring(splitIndex);
 			}
 
 			$(window).scrollTop($(document).height());
+		},
+		writeError: function(command, error)
+		{
+			command = sanitize(command);
+			io.output.write("-mash: " + command + ": " + error);
 		},
 		clear: function()
 		{
@@ -64,7 +76,7 @@ var io =
 		{
 			input = $("#" + input_id);
 			
-			preCommandString = "con.rs:~ " + os.currentUser + "$ ";
+			preCommandString = "con.rs:" + fs.pwd() + " " + os.currentUser + "$ ";
 			
 			input.focus();	
 			io.input.prompt(preCommandString);
@@ -94,6 +106,7 @@ var io =
 				{
 					var val = $("#" + input_id).val().trim();
 					interpret(val);
+					preCommandString = "con.rs:" + fs.pwd() + " " + os.currentUser + "$ ";
 					$("#" + input_id).val("");
 					$("#"+overflow_id).remove();
 					io.input.prompt(preCommandString);

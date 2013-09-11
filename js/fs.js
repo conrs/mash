@@ -3,16 +3,126 @@
 var fs = 
 {
 	stack: [],
-	execute: function(cmd)
+	root: [],
+	currentElement: function()
 	{
+		if(fs.stack.length == 0)
+		{
+			obj = fs.makeRootElement();
+		} else
+		{
+			obj = fs.stack[fs.stack.length - 1];
+		}
+
+
+		return obj;
+	},
+	makeRootElement: function()
+	{
+		obj = {};
+		obj.children = {};
+		obj.execute = function() { return false; };
+		$.each(fs.root, function(i, value)
+		{
+			obj.children[value.handle] = value;
+		});
+
+		return obj;
+	},
+	execute: function(cmd, args)
+	{
+		console.log(cmd);
+		console.log(args);
 		switch(cmd)
 		{
-			case "email":
-				alert("wut");
+			case "ls": 
+				io.output.write("");
 
-			break;
+				executed = false;
 
+				// If no arguments are passed, current working directory.
+				if(args == "")
+				{
+					executed = fs.currentElement().execute("ls");
+				} else
+				{
+					element = fs.getElementAtPath(args);
 
+					if(element)
+					{
+						executed = element.execute("ls");
+
+						if(!executed)
+						{
+							executed = true;
+							$.each(element.children, function(i, value)
+							{
+								out = i;
+								if(value.type == "directory")
+									out += "/";
+
+								io.output.write(out);
+							});
+						}
+					}
+						
+				}
+				
+
+				if(!executed)
+				{
+					// Default ls behaviour
+					if(!executed)
+					{
+						$.each(fs.currentElement().children, function(i, value)
+						{
+							console.log(value);
+							out = i;
+							if(value.type == "directory")
+								out += "/";
+
+							io.output.write(out);
+						});
+					}
+				}
+				
+				break;
+			case "cd": 
+				temp_stack = fs.getStackForPath(args);
+				
+				if(temp_stack)
+				{
+					if(temp_stack.length == 0 || temp_stack[temp_stack.length - 1].type == "directory" )
+						fs.stack = temp_stack;
+					else
+						io.output.writeError(cmd, args + ": Not a directory.");
+				} else
+				{
+					io.output.writeError(cmd, args + ": No such file or directory");
+				}
+				break;
+			case "pwd": 
+				io.output.write(fs.pwd());
+				break;
+			case "cat":
+				temp_stack = fs.getStackForPath(args);
+
+				if(temp_stack)
+				{
+					if(temp_stack.length == 0 || temp_stack[temp_stack.length - 1].type == "directory" )
+						io.output.writeError(cmd, args + ": Is a directory.");
+					else
+					{
+						console.log(temp_stack);
+						temp_stack[temp_stack.length - 1].cat();
+					}
+						
+				} else
+				{
+					io.output.writeError(cmd, args + ": No such file or directory");
+				}
+
+				break;
 			default:
 			 	return false;	
 		}
@@ -21,70 +131,144 @@ var fs =
 	},
 	pwd: function()
 	{
-		return "/" + fs.stack.join("/") + "/";
-	},
-	cd: function(path)
-	{
+		ret = "/" + fs.stack.map(function(arg) { return arg.handle }).join("/");
 
+		return ret;
 	},
 	qualify_path: function(path)
 	{
-		tokens = path.split("/");
-		var curr_full_path = "";
+		
+	},
+	addRootItem: function(item)
+	{
+		item.init();
+		fs.root.push(item);
+	},
+	getStackForPath: function(path)
+	{
 
-		if(path.charAt(0) == "/")
-			return path;
-		else if(tokens[0] == "~")
-		{
-			tokens.splice(0, 1);
-			curr_full_path = fs.homedir; 
-		} else 
-		{
-			curr_full_path = fs.pwd;
-		} 
+		temp_stack = jQuery.extend(true, [], fs.stack);
 
-		for(var i in tokens)
-		{
-			var piece = tokens[i];
 
-			switch(piece)
+		if(path[0] == "/")
+			temp_stack = [];
+		
+		path = path.split("/");
+
+		$.each(path, function(index, value)
+		{
+			switch(value)
 			{
-				case ".":
-					curr_full_path = curr_full_path;
-					break;
-				case "~":
-					return null;
-					break;
 				case "..":
-					curr_full_path = curr_full_path.substring(0, curr_full_path.substring(0, curr_full_path.lastIndexOf("/")).lastIndexOf("/") + 1);
-					if(curr_full_path == "")
-						curr_full_path = "/";
+					temp_stack.pop();
+					break;
+				case "":
+				case ".":
 					break;
 				default: 
-					if(piece != "")
+					if(temp_stack && temp_stack.length != 0)
+						next = temp_stack[temp_stack.length - 1].children[value];
+					else
 					{
-						if(curr_full_path.charAt(curr_full_path.length - 1) != "/")
-							curr_full_path += "/";
+						next = fs.makeRootElement().children[value];
+					}
 
-						curr_full_path += piece;
+					if(next)
+					{
+						temp_stack.push(next);
 					} else
 					{
-						if(curr_full_path.charAt(curr_full_path.length - 1) != "/")
-							curr_full_path += "/";
+						temp_stack = false;
+						return false;
 					}
 						
 					break;
 			}
-		}
-		return curr_full_path;
+		});
+
+		return temp_stack;
+	},
+	getElementAtPath: function(path)
+	{
+		stack = fs.getStackForPath(path);
+		element = null;
+
+		if(stack && stack.length > 0)
+			element = stack[stack.length - 1];
+
+		return element;
 	}
 }
 
-var element = 
+
+// prototypical filesystem object interface. 
+var blog = 
 {
-	type: "file", 
+	handle: "blog",
+	children: {},
+	type: "directory",
+	contents: "",
+	init: function()
+	{
+		// Load the feed data. 
+
+		// Very cool google tool that takes an RSS feed and converts it into JSON.
+		$.ajax({
+		    url: document.location.protocol + '//ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=10&callback=?&q=' + "http://blog.con.rs/?feed=rss2",
+		    dataType: 'json',
+		    success: function(data) {
+		     	entries = data.responseData.feed.entries;
+
+		     	$.each(entries, function(i, entry)
+		     	{
+		     		console.log(entry);
+		     		handle = entry.title.replace(/\s/g, '_');
+		     		handle = handle.replace(/\W/g, '');
+		     		obj = {};
+		     		obj.handle = handle;
+		     		obj.contents = stripHTML(entry.content);
+		     		obj.cat = function() { io.output.write(this.contents); };
+
+		     		blog.children[obj.handle] = obj;
+		     	});
+		    }
+  		});
+		
+	},
+	destroy: function()
+	{
+
+	},
 	cat: function()
+	{	
+	},	
+	execute: function(command, args)
+	{
+		return false;
+	},
+	get: function(handle)
 	{
 
 	}
 }
+
+fs.addRootItem(blog);
+
+var other = jQuery.extend(true, {}, blog);
+
+other.handle = "cat";
+fs.addRootItem(other);
+function stripHTML(html)
+{
+   var tmp = document.createElement("DIV");
+   tmp.innerHTML = html;
+   return tmp.textContent || tmp.innerText || "";
+}
+
+
+
+
+
+
+
+

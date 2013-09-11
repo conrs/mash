@@ -222,7 +222,7 @@ var fs =
 	// TODO: doesn't work with relative pathing .. or .
 	tryComplete: function(path)
 	{
-		ret = false;
+		var ret = false;
 		index = path.lastIndexOf("/");
 
 		if(index != -1)
@@ -231,7 +231,10 @@ var fs =
 			incompleteHandle = path.substring(index + 1, path.length);
 		} else
 		{
-			fuzzyPath = fs.pwd() + "/";
+			fuzzyPath = fs.pwd();
+			if(fuzzyPath[fuzzyPath.length - 1] != "/")
+				fuzzyPath += "/";
+
 			incompleteHandle = path;
 		}
 
@@ -241,6 +244,8 @@ var fs =
 		{
 			$.each(element.children, function(i, child)
 			{
+				console.log(child.handle);
+				console.log(incompleteHandle);
 				if(child.handle.indexOf(incompleteHandle) == 0)
 				{
 					ret = child.handle;
@@ -250,8 +255,17 @@ var fs =
 				}
 			});
 		}
-		
-		return fuzzyPath + ret;
+
+		// Gross hack.
+		if(ret)
+		{
+			if(fuzzyPath == "/")
+				fuzzyPath = "";
+			
+			ret = fuzzyPath + ret;
+		}
+
+		return ret;
 	}
 }
 

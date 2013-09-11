@@ -231,7 +231,7 @@ var fs =
 			incompleteHandle = path.substring(index + 1, path.length);
 		} else
 		{
-			fuzzyPath = fs.pwd();
+			fuzzyPath = fs.pwd() + "/";
 			incompleteHandle = path;
 		}
 

@@ -145,10 +145,6 @@ var fs =
 
 		return ret;
 	},
-	qualify_path: function(path)
-	{
-		
-	},
 	addRootItem: function(item)
 	{
 		item.init();
@@ -259,9 +255,9 @@ var fs =
 		// Gross hack.
 		if(ret)
 		{
-			if(fuzzyPath == "/")
-				fuzzyPath = "";
-			
+			if(fuzzyPath.indexOf(fs.pwd()) == 0)
+				fuzzyPath = fuzzyPath.substring(fs.pwd().length + 1, fuzzyPath.length);
+
 			ret = fuzzyPath + ret;
 		}
 

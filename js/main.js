@@ -7,6 +7,7 @@ var os =
 		var last_seen = $.cookie("last-seen");
 		var userName = $.cookie("user");
 
+		userName = sanitize(userName);
 		if(userName == null)
 			userName = "guest"
 

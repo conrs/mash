@@ -22,7 +22,7 @@ var COMMANDS =
 			{
 				var padding_width = os.CONSOLE_WIDTH / 2;
 
-				io.output.write("mash, version 1.0");
+				io.output.write("mash, version 1.5");
 
 				for(var command in COMMANDS.find)
 				{
@@ -65,6 +65,8 @@ var COMMANDS =
 
 				var name = arguments.substring(0, spaceIndex);
 
+				name = sanitize(name);
+				
 				if(name.toLowerCase() == "matt")
 				{
 					io.output.write("No.");
@@ -75,10 +77,8 @@ var COMMANDS =
 				else
 				{
 					io.output.write("Welcome, " + name);
-					userName = name;
-					preCommandString = "con.rs:~ " + userName + "$ ";
-					$.cookie("user", userName);
-					input.trigger('keyup');
+					os.currentUser = name;
+					$.cookie("user", os.currentUser);
 				}
 			}
 		},

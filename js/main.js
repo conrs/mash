@@ -2,33 +2,22 @@ var os =
 {
 	CONSOLE_WIDTH: 80,
 	currentUser: null,
-
-
 	init: function()
 	{
 		var last_seen = $.cookie("last-seen");
 		var userName = $.cookie("user");
-		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
 
-
-		io.socket = pusher.subscribe('comm');
-
+		userName = sanitize(userName);
 		if(userName == null)
 			userName = "guest"
 
 		os.currentUser = userName;
 
+		io.init();
+
 		preparePrompt();
 
 		printWelcome(last_seen);
-
-		// Weird place for this half of wall functionality. Commands may need a constructor. 
-		io.socket.bind('wall', function(data) {
-			io.output.write("Broadcast message from " + data.user);
-			io.output.write(" ");
-			io.output.write(sanitize(data.message));
-			io.output.write(" ");
-		});
 
 		$.cookie("last-seen", new Date());
 	}
@@ -96,7 +85,7 @@ function interpret(command_string)
 
 	$("#user_prompt").html("");
 
-	execute(command, arguments)
+	execute(command, arguments);
 }
 
 function execute(command, arguments)

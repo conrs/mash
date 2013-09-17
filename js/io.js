@@ -17,10 +17,19 @@ var prompt_id = "user_prompt";
 
 var io = 
 {
+	history: [],
+	historyIndex: 0,
 	init: function()
 	{
 		// Weird but convenient placement for the 'wall' listener.
 		var pusher = new Pusher('1cd61253e47ce70d1a4e'); 
+
+
+		pusher.connection.bind("error", function(err) {
+				console.log("pusher error - disabling wall command");
+				COMMANDS.find["wall"] = null;
+		}); 
+
 		io.socket = pusher.subscribe('comm');
 
 		io.socket.bind('wall', function(data) {
@@ -29,6 +38,36 @@ var io =
 			io.output.write(sanitize(data.message));
 			io.output.write(" ");
 		});	
+
+	},
+	addHistory: function(command)
+	{
+		io.history.push(command);
+		io.historyIndex = io.history.length;
+	},
+	historyUp: function()
+	{
+		ret = false;
+
+		if(io.historyIndex > 0)
+		{
+			io.historyIndex--;
+			ret = io.history[io.historyIndex];
+		}
+
+		return ret;
+	},
+	historyDown: function()
+	{
+		ret = "";
+
+		if(io.historyIndex != io.history.length)
+			io.historyIndex++;
+
+		if(io.historyIndex < io.history.length)
+			ret = io.history[io.historyIndex];
+
+		return ret;
 	},
 	socket: null,
 	output: 
@@ -37,6 +76,7 @@ var io =
 		{
 			$("#"+output_id).append(element);
 			$("#"+output_id).append("<br/>");
+			$(window).scrollTop($(document).height());
 		},
 		write: function(str)
 		{
@@ -44,7 +84,6 @@ var io =
 			{
 				var splitIndex = -1;
 				splitIndex = str.indexOf("\n");
-				console.log(splitIndex);
 
 				if(splitIndex <= 0 || splitIndex > os.CONSOLE_WIDTH)
 					splitIndex = os.CONSOLE_WIDTH;
@@ -68,7 +107,7 @@ var io =
 		clear: function()
 		{
 			$("#"+output_id).html("");
-		}
+		},
 	},
 	input: 
 	{
@@ -81,22 +120,65 @@ var io =
 			input.focus();	
 			io.input.prompt(preCommandString);
 
+			input.bind('keydown', function(e)
+			{
+				if(e.keyCode == 9)
+				{
+					e.preventDefault();
+				}
+			});
+
 			input.bind('keyup', function(e)
 			{
 				var keyCode = e.keyCode;
-				var val = $.trim($(this).val());
+				var val = $(this).val().replace(/^\s/, "");
 				fillPrompt(preCommandString + sanitize(val));
 
-				if(keyCode == 32)
-				{
-					// Manually increase width so cursor appears properly.
-					$("#" + prompt_id).append("&nbsp;");
-				} else if (keyCode == 13)
-				{
-					io.input.lineEntered();
-				}
+				cmd = val.split(" ")[0];
+				path = val.split(" ")[1];
 
+				switch(keyCode)
+				{
+					// ENTER 
+					case 13:
+						io.input.lineEntered();
+						break;
+
+					// UP ARROW
+					case 38:
+						cmd = io.historyUp();
+						if(cmd)
+						{
+							$(this).val(cmd)
+							fillPrompt(preCommandString + cmd);
+						}
+						else
+							fillPrompt(preCommandString + val);
+						break;
+
+					// DOWN ARROW
+					case 40:
+						cmd = io.historyDown();
+						
+						$(this).val(cmd);
+						fillPrompt(preCommandString + cmd);
+
+						break;
+					// TAB
+					case 9:
+						str = fs.tryComplete(path);
+						if(str)
+						{
+							newCommand = cmd + " " +  str;
+							fillPrompt(preCommandString + newCommand);
+							$(this).val(newCommand);
+						}
+						break;
+
+					// TODO: Left/Right Arrow Keys. Shit.
+				}
 				e.stopPropagation();
+				e.preventDefault();
 			});
 		},
 		// "Temporary" laziness
@@ -109,6 +191,7 @@ var io =
 					preCommandString = "con.rs:" + fs.pwd() + " " + os.currentUser + "$ ";
 					$("#" + input_id).val("");
 					$("#"+overflow_id).remove();
+					io.addHistory(val);
 					io.input.prompt(preCommandString);
 				}
 			}

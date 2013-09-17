@@ -22,6 +22,7 @@ var fs =
 		obj = {};
 		obj.children = {};
 		obj.execute = function() { return false; };
+		obj.cat = function() { };
 		$.each(fs.root, function(i, value)
 		{
 			obj.children[value.handle] = value;
@@ -33,6 +34,7 @@ var fs =
 	{
 		switch(cmd)
 		{
+			// TODO: Partial LS, ls behaviour for things not directories clean up.
 			case "ls": 
 				io.output.write("");
 
@@ -48,20 +50,28 @@ var fs =
 
 					if(element)
 					{
-						executed = element.execute("ls");
+						if(element.type == "directory")
+						{
+							executed = element.execute("ls");
 
-						if(!executed)
+							if(!executed)
+							{
+								executed = true;
+								$.each(element.children, function(i, value)
+								{
+									out = i;
+									if(value.type == "directory")
+										out += "/";
+
+									io.output.write(out);
+								});
+							}
+						} else
 						{
 							executed = true;
-							$.each(element.children, function(i, value)
-							{
-								out = i;
-								if(value.type == "directory")
-									out += "/";
-
-								io.output.write(out);
-							});
+							io.output.write(args);
 						}
+						
 					}
 						
 				}
@@ -133,10 +143,6 @@ var fs =
 
 		return ret;
 	},
-	qualify_path: function(path)
-	{
-		
-	},
 	addRootItem: function(item)
 	{
 		item.init();
@@ -151,38 +157,44 @@ var fs =
 		if(path[0] == "/")
 			temp_stack = [];
 		
-		path = path.split("/");
+		path = path.split("/").filter(function(elem) { return elem != "" });
 
-		$.each(path, function(index, value)
+		if(path.length == 0)
 		{
-			switch(value)
+			temp_stack.push(fs.makeRootElement());
+		} else
+		{
+			$.each(path, function(index, value)
 			{
-				case "..":
-					temp_stack.pop();
-					break;
-				case "":
-				case ".":
-					break;
-				default: 
-					if(temp_stack && temp_stack.length != 0)
-						next = temp_stack[temp_stack.length - 1].children[value];
-					else
-					{
-						next = fs.makeRootElement().children[value];
-					}
+				switch(value)
+				{
+					case "..":
+						temp_stack.pop();
+					case "":
+					case ".":
+						break;
+					default: 
+						if(temp_stack && temp_stack.length != 0)
+							next = temp_stack[temp_stack.length - 1].children[value];
+						else
+						{
+							next = fs.makeRootElement().children[value];
+						}
 
-					if(next)
-					{
-						temp_stack.push(next);
-					} else
-					{
-						temp_stack = false;
-						return false;
-					}
-						
-					break;
-			}
-		});
+						if(next)
+						{
+							temp_stack.push(next);
+						} else
+						{
+							temp_stack = false;
+							return false;
+						}
+							
+						break;
+				}
+			});
+		}
+		
 
 		return temp_stack;
 	},
@@ -191,10 +203,63 @@ var fs =
 		stack = fs.getStackForPath(path);
 		element = null;
 
-		if(stack && stack.length > 0)
-			element = stack[stack.length - 1];
+		if(stack)
+		{
+			if(stack.length == 0)
+				element = fs.makeRootElement();
+			else
+				element = stack[stack.length - 1];
+		}
 
 		return element;
+	},
+	// TODO: doesn't work with relative pathing .. or .
+	tryComplete: function(path)
+	{
+		var ret = false;
+		index = path.lastIndexOf("/");
+
+		if(index != -1)
+		{
+			fuzzyPath = path.substring(0, index + 1);
+			incompleteHandle = path.substring(index + 1, path.length);
+		} else
+		{
+			fuzzyPath = fs.pwd();
+			if(fuzzyPath[fuzzyPath.length - 1] != "/")
+				fuzzyPath += "/";
+
+			incompleteHandle = path;
+		}
+
+		element = fs.getElementAtPath(fuzzyPath)
+
+		if(element)
+		{
+			$.each(element.children, function(i, child)
+			{
+				console.log(child.handle);
+				console.log(incompleteHandle);
+				if(child.handle.indexOf(incompleteHandle) == 0)
+				{
+					ret = child.handle;
+					if(child.type == "directory")
+						ret += "/";
+					return false; 
+				}
+			});
+		}
+
+		// Gross hack.
+		if(ret)
+		{
+			if(fuzzyPath.indexOf(fs.pwd()) == 0)
+				fuzzyPath = fuzzyPath.substring(fs.pwd().length + 1, fuzzyPath.length);
+
+			ret = fuzzyPath + ret;
+		}
+
+		return ret;
 	}
 }
 
@@ -221,7 +286,7 @@ var blog =
 		     	{
 		     		console.log(entry);
 		     		handle = entry.title.replace(/\s/g, '_');
-		     		handle = handle.replace(/\W/g, '');
+		     		handle = handle.replace(/\W/g, '') + ".txt";
 		     		obj = {};
 		     		obj.handle = handle;
 		     		obj.contents = stripHTML(entry.content);
@@ -250,19 +315,55 @@ var blog =
 	}
 }
 
-fs.addRootItem(blog);
-
-var other = jQuery.extend(true, {}, blog);
-
-other.handle = "cat";
-fs.addRootItem(other);
-function stripHTML(html)
+var about = 
 {
-   var tmp = document.createElement("DIV");
-   tmp.innerHTML = html;
-   return tmp.textContent || tmp.innerText || "";
+	handle: "about.txt",
+	children: {},
+	type: "file",
+	contents: "",
+	init: function()
+	{	
+	},
+	destroy: function()
+	{
+
+	},
+	cat: function()
+	{	
+		io.output.writeElement($("#about_holder").html());
+	},	
+	execute: function(command, args)
+	{
+		return false;
+	},
+	get: function(handle)
+	{
+
+	}
 }
 
+fs.addRootItem(blog);
+fs.addRootItem(about);
+
+var other = jQuery.extend(true, {}, blog);
+function stripHTMLExceptA(html)
+{
+  
+
+   html = html.replace("<a", "&lt;a");
+   html = html.replace("</a>", "&lt;/a&gt");
+
+   return stripHTML(html);
+}
+
+function stripHTML(html)
+{
+	 var tmp = document.createElement("DIV");
+
+	 tmp.innerHTML = html;
+
+   	return tmp.textContent || tmp.innerText || "cats";
+}
 
 
 

@@ -31,8 +31,6 @@ var fs =
 	},
 	execute: function(cmd, args)
 	{
-		console.log(cmd);
-		console.log(args);
 		switch(cmd)
 		{
 			case "ls": 

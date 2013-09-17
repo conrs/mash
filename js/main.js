@@ -40,7 +40,7 @@ $(document).ready(function()
 });
 
 
-$(document).click(function(e)
+$("#console_container").click(function(e)
 {
 	$("#text_catcher").focus();
 });

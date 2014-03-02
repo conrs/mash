@@ -166,13 +166,17 @@ var io =
 						break;
 					// TAB
 					case 9:
-						str = fs.tryComplete(path);
-						if(str)
+						if(path)
 						{
-							newCommand = cmd + " " +  str;
-							fillPrompt(preCommandString + newCommand);
-							$(this).val(newCommand);
+							str = fs.tryComplete(path);
+							if(str)
+							{
+								newCommand = cmd + " " +  str;
+								fillPrompt(preCommandString + newCommand);
+								$(this).val(newCommand);
+							}
 						}
+						
 						break;
 
 					// TODO: Left/Right Arrow Keys. Shit.

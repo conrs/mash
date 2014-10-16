@@ -124,6 +124,33 @@ var COMMANDS =
 					data: data
 				});
 			}
+		},
+		{
+			name: "say",
+			about: "reads the arguments using the power of the internet",
+			execute: function(args)
+			{
+				var data = {
+					text: args
+				};
+
+				$.ajax(
+					{
+						url: "backend/sayer.php",
+						data: data,
+						dataType: "json",
+						success: function(data)
+						{
+							var items = [];
+							$.each(data, function(i, elem)
+							{
+								x = new Audio(elem.href);
+								items.push(x);
+								playItems(items, 0);
+							});
+						}
+					});
+			}
 		}
 	],
 
@@ -133,6 +160,17 @@ var COMMANDS =
 for(var i in COMMANDS.raw)
 {
 	COMMANDS.find[COMMANDS.raw[i].name] = COMMANDS.raw[i];
+}
+
+function playItems(items, startIndex)
+{
+	if(startIndex < items.length )
+	{
+		item = items[startIndex];
+		item.addEventListener('ended', function() { playItems(items, startIndex + 1)});
+	
+		item.play();
+	}
 }
 
 

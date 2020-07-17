@@ -17,8 +17,6 @@
     "url": "https://github.com/conrs/mash/issues"
   },
   "homepage": "https://github.com/conrs/mash#readme",
-  "dependencies": {
-    "ts-stream": "^2.0.2"
-  },
+  "dependencies": {},
   "devDependencies": {}
 }

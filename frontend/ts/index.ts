@@ -1,7 +1,7 @@
-import { Program, ProgramInput } from "./models/types.js";
-import Stream from "./stream.js"
-import { Ascii } from "./ascii.js";
-import { CLIWindow } from "./cliWindow.js";
+
+import Stream from "./util/stream.js"
+import { Ascii } from "./util/ascii.js";
+import { BrowserCLIWindow } from "./browserCLIWindow.js";
 
 
 // Hook up the stdin stream to our UI state and system
@@ -10,11 +10,12 @@ function init() {
     let keyboardStream = makeKeyboardInputStream()
     let characterStream = makeCharacterStream(keyboardStream)
 
-    let window = new CLIWindow(
-        characterStream,
-        (output) => console.log(output),
-        (x: number, y: number, visible: boolean) => console.log(`Cursor ${visible ? "(visible)" : "(invisible)"} x: ${x} y: ${y}`),
-        20
+    let outputElement = document.getElementById("console_output")
+    let cursorElement = document.getElementById("cursor")
+    let window = new BrowserCLIWindow(
+        outputElement,
+        cursorElement,
+        characterStream
     )
 }
 

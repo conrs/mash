@@ -1,7 +1,7 @@
-import { Program, ProgramInput } from "./models/types.js";
-import Stream from "./stream.js"
-import { Ascii } from "./ascii.js";
-import { CLIWindow } from "./cliWindow.js";
+
+import Stream from "./util/stream.js"
+import { Ascii } from "./util/ascii.js";
+import { BrowserCLIWindow } from "./browserCLIWindow.js";
 
 
 // Hook up the stdin stream to our UI state and system
@@ -10,11 +10,12 @@ function init() {
     let keyboardStream = makeKeyboardInputStream()
     let characterStream = makeCharacterStream(keyboardStream)
 
-    let window = new CLIWindow(
-        characterStream,
-        (output) => console.log(output),
-        (x: number, y: number, visible: boolean) => console.log(`Cursor ${visible ? "(visible)" : "(invisible)"} x: ${x} y: ${y}`),
-        20
+    let outputElement = document.getElementById("console_output")
+    let cursorElement = document.getElementById("cursor")
+    let window = new BrowserCLIWindow(
+        outputElement,
+        cursorElement,
+        characterStream
     )
 }
 
@@ -43,6 +44,10 @@ function makeCharacterStream(keyboardStream: Stream<string>) {
             char = Ascii.Codes.LeftArrow
         } else if(keyValue == "ArrowRight") {
             char = Ascii.Codes.RightArrow
+        } else if(keyValue == "ArrowDown") {
+            char = Ascii.Codes.DownArrow
+        } else if(keyValue == "ArrowUp") {
+            char = Ascii.Codes.UpArrow
         }
 
         if(char != -1) {
@@ -73,9 +78,8 @@ function makeKeyboardInputStream() {
         keyboardStream.write(e.key)
         
         e.stopPropagation()
-        e.preventDefault();
+        e.preventDefault()
     });
    
-
     return keyboardStream
 }

@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+set -x 
+
+rm -rf html/js || true; 
+tsc; 
+mkdir -p html; 
+cp -R ts html/; 
+docker build . -t local-registry/mash

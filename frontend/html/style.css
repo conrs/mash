@@ -1,4 +1,4 @@
-html{
+html {
   background: black;
   color: #B4FFAE;
   font-size: 10pt;
@@ -6,30 +6,34 @@ html{
   line-height: 15px;
 }
 
-div{
-  width: 800px;
-  overflow:hidden;
-}
-
 div#console_output
 {
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
+
+#input_area {
+  margin-top: -1.9vh;
+  margin-left: -.8vw;
+}
+
+#cursor_padder {
+  display: inline;
+  visibility: hidden;
+}
 .cursor {
-        font-size: 12px;
-        background-color: #B4FFAE;
-        color: #B4FFAE;
-        position: relative;
-      }
-      
-textarea#text_catcher 
-{ 
-        left: -1000px;
-        position: absolute;
-
+  font-size: 12px;
+  background-color: #B4FFAE;
+  color: #B4FFAE;
+  position: relative;
 }
-a{
+      
+textarea#text_catcher { 
+  left: -1000px;
+  position: absolute;
+}
+
+a {
   color: #96FF8C;
   font-size: 10pt;
   text-decoration: underline;

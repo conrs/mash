@@ -78,8 +78,9 @@ function makeKeyboardInputStream() {
         keyboardStream.write(e.key)
         
         e.stopPropagation()
-        e.preventDefault()
+        e.preventDefault();
     });
    
+
     return keyboardStream
 }

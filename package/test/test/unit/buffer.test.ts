@@ -189,8 +189,8 @@ describe("buffer", () => {
     expect(await stdout.read()).toBe("c".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
     expect(await stdout.read()).toBe("t".charCodeAt(0))
-    expect(await stdout.read()).toBe("t".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
+    expect(await stdout.read()).toBe("t".charCodeAt(0))
     expect(await stdout.read()).toBe("l".charCodeAt(0))
     expect(await stdout.read()).toBe("e".charCodeAt(0))
 
@@ -202,9 +202,9 @@ describe("buffer", () => {
     expect(await stdout.read()).toBe("c".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
     expect(await stdout.read()).toBe("t".charCodeAt(0))
-    expect(await stdout.read()).toBe("t".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
     expect(await stdout.read()).toBe("3".charCodeAt(0))
+    expect(await stdout.read()).toBe("t".charCodeAt(0))
     expect(await stdout.read()).toBe("l".charCodeAt(0))
     expect(await stdout.read()).toBe("e".charCodeAt(0))
   });

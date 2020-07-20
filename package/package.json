@@ -1,6 +1,6 @@
 {
   "name": "conrs-mash",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Matt's Awesome Shell - a shell-like browser experience and portfolio joke.",
   "main": "index.js",
   "scripts": {

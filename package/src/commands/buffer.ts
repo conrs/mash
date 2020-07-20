@@ -50,6 +50,9 @@ export class Buffer extends BaseCommand {
   }
 
   private bufferCharacterCode(characterCode: number, moveCursor: boolean = true) {
+    let targetCursorX = this.cursorPosition.getX()
+    let targetCursorY = this.cursorPosition.getY()
+
     if(this.cursorPosition.handleCharacterCode(characterCode, moveCursor)) {
       if(Ascii.isPrintableCharacterCode(characterCode)) {
         // Handle it in our buffer. 
@@ -60,15 +63,12 @@ export class Buffer extends BaseCommand {
         } else {
           this.stdout.write(Ascii.Codes.ClearScreen)
 
-          let targetCursorX = this.cursorPosition.getX()
-          let targetCursorY = this.cursorPosition.getY()
-
           let oldBuffer: number[] = this.buffer
           let bufferIndex = 0;
-
           this.cursorPosition = new CursorPositionHandler(this.cursorPosition.maxWidth)
 
           this.buffer = []
+
           while(
             this.cursorPosition.getX() != targetCursorX || 
             this.cursorPosition.getY() != targetCursorY
@@ -79,7 +79,7 @@ export class Buffer extends BaseCommand {
             }
 
           // Now `this.cursorPosition` is "caught up" to the place the cursor was. So, we add our new character there. 
-          this.bufferCharacterCode(characterCode, false);
+          this.bufferCharacterCode(characterCode);
 
           // And now, run through the rest of the buffer (but do not move cursor)
           oldBuffer.slice(bufferIndex).forEach((characterCode) => this.bufferCharacterCode(characterCode, false))

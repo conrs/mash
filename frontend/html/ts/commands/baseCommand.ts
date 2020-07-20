@@ -1,4 +1,4 @@
-import Stream from "../util/stream"
+import { Stream }from "../util/stream"
 
 export abstract class BaseCommand {
   abstract name: string

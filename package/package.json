@@ -1,0 +1,26 @@
+{
+  "name": "conrs-mash",
+  "version": "0.1.0",
+  "description": "Matt's Awesome Shell - a shell-like browser experience and portfolio joke.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conrs/mash.git"
+  },
+  "author": "Matt Connors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/conrs/mash/issues"
+  },
+  "homepage": "https://github.com/conrs/mash#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^26.0.5",
+    "jest": "^26.1.0",
+    "ts-jest": "^26.1.3",
+    "typescript": "^3.9.7"
+  }
+}

@@ -1,4 +1,4 @@
-import Stream from "./stream";
+import { Stream }from "./stream";
 
 /**
  * Keeps executing an asyncronous call until either the promise rejects, 

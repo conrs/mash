@@ -6,7 +6,7 @@
  *    - Passing along commands to the parser
  */
 
-import Stream from "./stream.js";
+import { Stream }from "./stream.js";
 import { Ascii } from "./ascii.js";
 
 

@@ -1,4 +1,4 @@
-import Stream from "ts-stream"
+import { Stream }from "ts-stream"
 
 export type ProgramInput = {
     stdin: Stream<string>,

@@ -6,12 +6,12 @@
 //  *    - Passing along commands to the parser
 //  */
 
-// import Stream from "./util/stream.js";
+// import { Stream }from "./util/stream.js";
 // import { Ascii } from "./util/ascii.js";
 // import { CursorPositionHandler } from "./util/cursorPositionHandler.js";
 
 import { Buffer } from "./commands/buffer.js"
-import Stream from "./util/stream.js"
+import { Stream }from "./util/stream.js"
 import { consumeRepeatedly } from "./util/consumeRepeatedly.js"
 import { Ascii } from "./util/ascii.js"
 

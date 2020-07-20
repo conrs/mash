@@ -1,5 +1,5 @@
 
-import Stream from "./util/stream.js"
+import { Stream }from "./util/stream.js"
 import { Ascii } from "./util/ascii.js";
 import { BrowserCLIWindow } from "./browserCLIWindow.js";
 
@@ -81,6 +81,5 @@ function makeKeyboardInputStream() {
         e.preventDefault();
     });
    
-
     return keyboardStream
 }

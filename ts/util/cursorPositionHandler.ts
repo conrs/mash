@@ -19,7 +19,6 @@ export class CursorPositionHandler {
   }
 
   getX() {
-    console.log(`x: ${this.x} offs: ${this.xOffset}`)
     return this.x + this.xOffset;
   }
 
@@ -96,7 +95,6 @@ export class CursorPositionHandler {
 
   private moveLeft(): boolean {
     if((this.x + this.xOffset) > 0) {
-      console.log("did it")
       this.xOffset--;
       return true;
     } else {

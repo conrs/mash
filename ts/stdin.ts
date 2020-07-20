@@ -1,4 +1,4 @@
-import Stream from "./stream.js"
+import { Stream }from "./stream.js"
 
 let stdin = new Stream<string>()
 

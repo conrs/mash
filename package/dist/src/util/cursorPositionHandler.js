@@ -1,4 +1,4 @@
-import { Ascii } from "./ascii.js";
+import { Ascii } from "./ascii";
 export class CursorPositionHandler {
     constructor(maxWidth = 1000000000) {
         this.maxWidth = maxWidth;
@@ -8,7 +8,6 @@ export class CursorPositionHandler {
         this.y = 0;
     }
     getX() {
-        console.log(`x: ${this.x} offs: ${this.xOffset}`);
         return this.x + this.xOffset;
     }
     getY() {
@@ -68,7 +67,6 @@ export class CursorPositionHandler {
     }
     moveLeft() {
         if ((this.x + this.xOffset) > 0) {
-            console.log("did it");
             this.xOffset--;
             return true;
         }

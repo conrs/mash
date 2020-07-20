@@ -1,8 +1,8 @@
-import { Stream } from "../util/stream.js";
-import { Ascii } from "../util/ascii.js";
-import { CursorPositionHandler } from "../util/cursorPositionHandler.js";
-import { BaseCommand } from "./baseCommand.js";
-import { consumeRepeatedly } from "../util/consumeRepeatedly.js";
+import { Stream } from "../util/stream";
+import { Ascii } from "../util/ascii";
+import { CursorPositionHandler } from "../util/cursorPositionHandler";
+import { BaseCommand } from "./baseCommand";
+import { consumeRepeatedly } from "../util/consumeRepeatedly";
 export class Buffer extends BaseCommand {
     constructor(stdin, stdout, width) {
         super(stdin, stdout);
@@ -11,7 +11,7 @@ export class Buffer extends BaseCommand {
         this.cursorPosition = new CursorPositionHandler(width);
         this.buffer = [];
     }
-    static async run(stdin, stdout, args) {
+    static async run(stdin, stdout, args = []) {
         let width = args[0] ? parseInt(args[0], 10) : undefined;
         return new Buffer(stdin, stdout, width).run(args);
     }
@@ -22,37 +22,39 @@ export class Buffer extends BaseCommand {
         }
         return new Promise((resolve, reject) => {
             consumeRepeatedly(this.stdin, (characterCode) => {
-                if (this.cursorPosition.handleCharacterCode(characterCode)) {
-                    this.stdout.write(characterCode);
-                }
-                if (Ascii.isPrintableCharacterCode(characterCode)) {
-                    this.bufferCharacterCode(characterCode);
-                }
+                this.bufferCharacterCode(characterCode, true);
                 return false;
             }).then(() => resolve(0));
         });
     }
     bufferCharacterCode(characterCode, moveCursor = true) {
-        if (!moveCursor || this.cursorPosition.isAtEnd()) {
-            this.buffer.push(characterCode);
-        }
-        else {
-            this.stdout.write(Ascii.Codes.ClearScreen);
-            let targetCursorX = this.cursorPosition.getX();
-            let targetCursorY = this.cursorPosition.getY();
-            let oldBuffer = [];
-            let bufferIndex = 0;
-            this.cursorPosition = new CursorPositionHandler(this.cursorPosition.maxWidth);
-            this.buffer = [];
-            while (this.cursorPosition.getX() != targetCursorX &&
-                this.cursorPosition.getY() != targetCursorY) {
-                let characterCode = oldBuffer[bufferIndex];
-                this.cursorPosition.handleCharacterCode(characterCode);
-                this.buffer.push(characterCode);
-                bufferIndex++;
+        if (this.cursorPosition.handleCharacterCode(characterCode, moveCursor)) {
+            if (Ascii.isPrintableCharacterCode(characterCode)) {
+                if (!moveCursor || this.cursorPosition.isAtEnd()) {
+                    this.buffer.push(characterCode);
+                    this.stdout.write(characterCode);
+                }
+                else {
+                    this.stdout.write(Ascii.Codes.ClearScreen);
+                    let targetCursorX = this.cursorPosition.getX();
+                    let targetCursorY = this.cursorPosition.getY();
+                    let oldBuffer = this.buffer;
+                    let bufferIndex = 0;
+                    this.cursorPosition = new CursorPositionHandler(this.cursorPosition.maxWidth);
+                    this.buffer = [];
+                    while (this.cursorPosition.getX() != targetCursorX ||
+                        this.cursorPosition.getY() != targetCursorY) {
+                        let characterCode = oldBuffer[bufferIndex];
+                        this.bufferCharacterCode(characterCode);
+                        bufferIndex++;
+                    }
+                    this.bufferCharacterCode(characterCode, false);
+                    oldBuffer.slice(bufferIndex).forEach((characterCode) => this.bufferCharacterCode(characterCode, false));
+                }
             }
-            this.bufferCharacterCode(characterCode);
-            oldBuffer.slice(bufferIndex).forEach((characterCode) => this.bufferCharacterCode(characterCode, false));
+            else {
+                this.stdout.write(characterCode);
+            }
         }
     }
 }

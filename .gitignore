@@ -1,3 +1,6 @@
-frontend/yarn-error.log
-frontend/node_modules
+yarn-error.log
+package-lock.json
+node_modules/
+coverage
+dist
 frontend/html/js

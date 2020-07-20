@@ -5,17 +5,16 @@
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
-        "outDir": "html/js",
+        "outDir": "dist",
         "sourceMap": true,
         "lib": [
             "dom"
         ]
     },
     "include": [
-        "ts/**/*"
+        "src/**/*", "src/browserCLIWindow.ts"
     ],
     "exclude": [
-        "node_modules",
         "**/*.spec.ts"
     ]
 }

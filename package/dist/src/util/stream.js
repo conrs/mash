@@ -1,18 +1,24 @@
 export class Stream {
     constructor() {
         this.listeners = [];
+        this.buffer = [];
     }
     async read() {
         return new Promise((resolve, reject) => {
-            this.listeners.push({
-                resolve: resolve,
-                reject: reject
-            });
+            if (this.buffer.length > 0)
+                resolve(this.buffer.shift());
+            else
+                this.listeners.push({
+                    resolve: resolve,
+                    reject: reject
+                });
         });
     }
     write(value) {
         if (this.listeners.length > 0)
             this.listeners.shift().resolve(value);
+        else
+            this.buffer.push(value);
     }
     end() {
         while (this.listeners.length > 0) {

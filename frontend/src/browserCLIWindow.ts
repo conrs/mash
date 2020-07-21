@@ -6,10 +6,6 @@
 //  *    - Passing along commands to the parser
 //  */
 
-// import { Stream }from "./util/stream.js";
-// import { Ascii } from "./util/ascii.js";
-// import { CursorPositionHandler } from "./util/cursorPositionHandler.js";
-
 import * as mash from "conrs-mash"
 
 /**
@@ -32,7 +28,7 @@ export class BrowserCLIWindow {
     private cursorElement: HTMLElement,
     private stdin: mash.util.Stream<number>
   ) {
-    let widthInCharacters = Math.floor(this.outputElement.clientWidth / cursorElement.clientWidth)
+    let widthInCharacters = Math.floor(this.outputElement.clientWidth / cursorElement.clientWidth) - 20
 
     this.stdout = new mash.util.Stream<number>()
     this.buffer = new mash.commands.Buffer(this.stdin, this.stdout, widthInCharacters)
@@ -53,11 +49,16 @@ export class BrowserCLIWindow {
     mash.util.consumeRepeatedly(this.stdout, (character) => {
       if(character == mash.util.Ascii.Codes.ClearScreen) {
         this.outputElement.innerText = ""
-      } else if(mash.util.Ascii.isPrintableCharacterCode(character)) {
-        this.outputElement.innerText += mash.util.Ascii.getPrintableCharacter(character)
+      } else if(mash.util.Ascii.isVisibleText(character)) {
+        console.log("processing character", character)
+        if(mash.util.Ascii.Codes.Backspace == character) 
+          this.outputElement.innerText = this.outputElement.innerText.substring(0, this.outputElement.innerText.length - 1)
+        else 
+          this.outputElement.innerText += String.fromCharCode(character)
       }
-      this.cursorElement.style.left = (this.buffer.cursorPosition.getX() * (Math.round((cursorElement.clientWidth * 1.14) * 100) / 100)).toString()
-      this.cursorElement.style.top = (this.buffer.cursorPosition.getY() * cursorElement.clientHeight).toString()
+      
+      this.cursorElement.style.left = (this.buffer.cursorX * (Math.round((cursorElement.clientWidth * 1.14) * 100) / 100)).toString()
+      this.cursorElement.style.top = (this.buffer.cursorY * cursorElement.clientHeight).toString()
 
       return false;
     })

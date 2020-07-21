@@ -8,25 +8,27 @@
 
 import { Stream }from "../util/stream";
 import { Ascii } from "../util/ascii";
-import { CursorPositionHandler } from "../util/cursorPositionHandler";
 import { BaseCommand } from "./baseCommand";
 import { consumeRepeatedly } from "../util/consumeRepeatedly";
 
 export class Buffer extends BaseCommand {
   name = "buffer"
   helpText = "Provides a buffer for user input, echoing it to standard out, and allowing for cursor movement"
+  
 
-  cursorPosition: CursorPositionHandler
-  buffer: number[]
+  private bufferXYIndices: number[][] = [[]] // Tracks the index in `buffer` that a given x, y coordinate refers to.
+                                             // For any given (x, y) index, (x+1, y) >= (x, y) && (0, y+1) >= (x, y)
+  public cursorX: number = 0
+  public cursorY: number = 0
+  public buffer: string = ""
 
   constructor(
     stdin: Stream<number>,
     stdout: Stream<number>,
-    width?: number, 
+    public maxWidth: number = 100, 
   ) {
     super(stdin, stdout)
-    this.cursorPosition = new CursorPositionHandler(width)
-    this.buffer = []
+    this.bufferXYIndices = [[]]
   }
 
   static async run(stdin: Stream<number>, stdout: Stream<number>, args: string[] = []): Promise<number> {
@@ -43,93 +45,253 @@ export class Buffer extends BaseCommand {
 
     return new Promise((resolve, reject) => {
       consumeRepeatedly(this.stdin, (characterCode) => {
-        this.bufferCharacterCode(characterCode, true)
+        this.handleCharacterCode(characterCode, true)
         return false;
       }).then(() => resolve(0))
     })
   }
 
-  private bufferCharacterCode(characterCode: number, moveCursor: boolean = true) {
-    let targetCursorX = this.cursorPosition.getX()
-    let targetCursorY = this.cursorPosition.getY()
+  private handleCharacterCode(characterCode: number, shouldWriteStdout: boolean = true): boolean {
+    if(Ascii.isVisibleText(characterCode)) {
+      if(this.cursorX == this.bufferXYIndices[this.cursorY].length) {
+        // The cursor is at the end of our current line. 
 
-    if(this.cursorPosition.handleCharacterCode(characterCode, moveCursor)) {
-      if(Ascii.isPrintableCharacterCode(characterCode)) {
-        // Handle it in our buffer. 
-        // console.log(characterCode, Ascii.getPrintableCharacter(characterCode))
-        if(!moveCursor || this.cursorPosition.isAtEnd()) {
-          this.buffer.push(characterCode)
-          this.stdout.write(characterCode)
+        if(characterCode == Ascii.Codes.Backspace) {
+          if(this.cursorX > 0) {
+            this.cursorX--;
+          } else if(this.cursorY > 0) {
+            this.cursorY--;
+            this.cursorX = this.bufferXYIndices[this.cursorY].length
+          } else {
+            return false;
+          }
+
+          this.buffer = this.buffer.substring(0, this.buffer.length - 1)
+
+        } else if(this.cursorX == this.maxWidth) {
+          // Darn, we gotta shuffle this one in on the next line. 
+          // Fortunately we can just increment our cursor and then call ourselves again. 
+
+          // Write a newline - if we are in the middle of our buffer it'll get cleared anyway.
+          if(shouldWriteStdout)
+            this.stdout.write(Ascii.Codes.NewLine)
+
+          this.nextLine()
+          return this.handleCharacterCode(characterCode, shouldWriteStdout)
         } else {
-          this.stdout.write(Ascii.Codes.ClearScreen)
+          this.bufferXYIndices[this.cursorY][this.cursorX] = this.buffer.length;
+          this.buffer += String.fromCharCode(characterCode)
+          this.cursorX++;
 
-          let oldBuffer: number[] = this.buffer
-          let bufferIndex = 0;
-          this.cursorPosition = new CursorPositionHandler(this.cursorPosition.maxWidth)
-
-          this.buffer = []
-
-          while(
-            this.cursorPosition.getX() != targetCursorX || 
-            this.cursorPosition.getY() != targetCursorY
-            ) {
-              let characterCode = oldBuffer[bufferIndex]
-              this.bufferCharacterCode(characterCode)
-              bufferIndex++;
-            }
-
-          // Now `this.cursorPosition` is "caught up" to the place the cursor was. So, we add our new character there. 
-          this.bufferCharacterCode(characterCode);
-
-          // And now, run through the rest of the buffer (but do not move cursor)
-          oldBuffer.slice(bufferIndex).forEach((characterCode) => this.bufferCharacterCode(characterCode, false))
+          if(characterCode == Ascii.Codes.NewLine) {
+            this.nextLine()
+          }
         }
+
+        if(shouldWriteStdout) {
+          this.stdout.write(characterCode)
+        }
+
+        return true;
       } else {
+
+        if(characterCode == Ascii.Codes.Backspace) {
+          if(this.cursorX == 0) {
+            return false;
+          }
+
+          let lhs = this.buffer.substring(0, this.cursorX-1)
+          let rhs = this.buffer.substring(this.cursorX)
+  
+          this.buffer = lhs + String.fromCharCode(characterCode) + rhs
+      
+          let newLineArray = [];
+      
+          for(let x = 0; x < this.cursorX-1; x++) {
+            newLineArray.push(this.bufferXYIndices[this.cursorY][x])
+          }
+      
+          newLineArray.push(this.cursorX)
+          newLineArray.push(this.cursorX + 1)
+      
+          for(let x = this.cursorX; x < this.bufferXYIndices[this.cursorY].length; x++) {
+            // we add 1 below because the string offset will have changed by one (to make room for our inserted char)
+            newLineArray.push(this.bufferXYIndices[this.cursorY][x] - 1)
+          }
+      
+          // bump the index for every following position in our buffer
+          for(let y = this.cursorY; y < this.bufferXYIndices.length; y++) {
+            for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
+              this.bufferXYIndices[y][x] = this.bufferXYIndices[y][x] - 1
+            }
+          }
+      
+          // replace our line's buffer with our new buffer
+          this.bufferXYIndices[this.cursorY] = newLineArray
+    
+      
+          // decrement our cursor position
+          this.cursorX--;
+      
+          // flush and rewrite buffer if applicable
+          if(shouldWriteStdout) {
+            this.flushAndRewriteBuffer()
+          }
+        } else {
+          let lhs = this.buffer.substring(0, this.cursorX)
+          let rhs = this.buffer.substring(this.cursorX)
+      
+
+          this.buffer = lhs + String.fromCharCode(characterCode) + rhs
+      
+          let newLineArray = [];
+      
+          for(let x = 0; x < this.cursorX; x++) {
+            newLineArray.push(this.bufferXYIndices[this.cursorY][x])
+          }
+      
+          newLineArray.push(this.cursorX)
+          newLineArray.push(this.cursorX + 1)
+      
+          for(let x = this.cursorX + 1; x < this.bufferXYIndices[this.cursorY].length; x++) {
+            // we add 1 below because the string offset will have changed by one (to make room for our inserted char)
+            newLineArray.push(this.bufferXYIndices[this.cursorY][x] + 1)
+          }
+      
+          // bump the index for every following position in our buffer
+          for(let y = this.cursorY; y < this.bufferXYIndices.length; y++) {
+            for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
+              this.bufferXYIndices[y][x] = this.bufferXYIndices[y][x] + 1
+            }
+          }
+      
+          // replace our line's buffer with our new buffer
+          this.bufferXYIndices[this.cursorY] = newLineArray
+      
+          if(this.bufferXYIndices.length > this.maxWidth) {
+            let oldCursorX = this.cursorX;
+            let oldCursorY = this.cursorY;
+      
+            // trickery - just shift it, then pretend we're doing a new insert at the end of the next line
+            this.nextLine()
+            this.cursorX = this.bufferXYIndices[this.cursorY].length
+      
+            this.handleCharacterCode(this.bufferXYIndices[this.cursorY].shift(), false)
+      
+            this.cursorX = oldCursorX
+            this.cursorY = oldCursorY
+          }
+      
+          // increment our cursor position
+          this.cursorX++;
+      
+          if(characterCode == Ascii.Codes.NewLine) {
+            this.nextLine()
+          }
+      
+          // flush and rewrite buffer if applicable
+          if(shouldWriteStdout) {
+            this.flushAndRewriteBuffer()
+          }
+        }
+        
+
+        return true;
+      }  
+    } else {
+      let success = false;
+      switch(characterCode) {
+        case Ascii.Codes.DownArrow: 
+          success = this.moveDown();
+          break;
+        case Ascii.Codes.UpArrow: 
+          success = this.moveUp();
+          break;
+        case Ascii.Codes.LeftArrow:
+          success = this.moveLeft();
+          break;
+        case Ascii.Codes.RightArrow:
+          success = this.moveRight();
+          break;
+        case Ascii.Codes.Delete: 
+          success = false;
+          break;
+        default:
+          success = true;
+      }
+
+      if(success && shouldWriteStdout) {
         this.stdout.write(characterCode)
       }
     }
   }
 
-  //run()
-  //   // Set up the cursor blink and position updater
-  //   setInterval(() => {
-  //     // The cursor is visible if stdin is being waited on. 
-  //     if(this.stdin.hasListeners()) {
-  //       this.cursorVisible = !this.cursorVisible 
-  //     } else {
-  //       this.cursorVisible = false;
-  //     }
-  //     cursorUpdater(this.cursorPosition.getX(), this.cursorPosition.getY(), this.cursorVisible)
-  //   }, 600)
 
-  //   // Read stdout to update buffer and position
-  //   let stdoutListenHelper = (characterCode: number) => {
-  //     if(characterCode == Ascii.Codes.Bell || !this.cursorPosition.handleCharacterCode(characterCode)) {
-  //       console.log("DING dont do that")
-  //     }
-  //     if(Ascii.isPrintableCharacterCode(characterCode)) {
-  //       let character = Ascii.getPrintableCharacter(characterCode)
-        
-  //       this.buffer += character;
+  private moveLeft(): boolean {
+    if(this.cursorX > 0) {
+      this.cursorX--;
+      return true;
+    } else {
+      return false;
+    }
+  }
 
-  //       outputBufferUpdater(this.buffer)
-  //     }
-  //     // TODO: handle signals
+  private moveRight(): boolean {
+    if(this.cursorX < this.bufferXYIndices[this.cursorY].length) {
+      this.cursorX++;
+      return true;
+    } else {
+      return false;
+    }
+  }
 
-  //     this.stdout.read().then(stdoutListenHelper)
-  //   }
+  private moveUp(): boolean {
+    if(this.cursorY > 0) {
+      this.cursorY--;
+      return true;
+    } else {
+      return false;
+    }
+  }
 
-  //   this.stdout.read().then(stdoutListenHelper)
+  private moveDown(): boolean {
+    if(this.cursorY < this.bufferXYIndices.length - 1) {
+      this.cursorY++;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  private previousCursorPositionBufferIndex(): number | false {
+    if(this.cursorX == 0 && this.cursorY == 0)
+      return false;
+    else if(this.cursorX > 0) 
+      return this.bufferXYIndices[this.cursorY][this.cursorX - 1]
+    else 
+      return this.bufferXYIndices[this.cursorY - 1][this.bufferXYIndices[this.cursorY - 1].length - 1]
+  }
+  
 
-  //   let characterStreamHelper = (character: number) => {
-  //     this.stdin.write(character)
+  private nextLine(resetX: boolean = true) {
+    if(typeof(this.bufferXYIndices[this.cursorY + 1])) {
+      this.bufferXYIndices[this.cursorY + 1] = []
+    }
+    this.cursorY++;
 
-  //     this.asciiCharacterStream.read().then(characterStreamHelper)
-  //   }
-  //   this.asciiCharacterStream.read().then(characterStreamHelper)
-  // }
+    if(resetX)
+      this.cursorX = 0;
+  }
 
-  // public resize(newWidth: number) {
-  //   this.cursorPosition.resize(newWidth, this.buffer)
-  // }
+  private flushAndRewriteBuffer() {
+    this.stdout.write(Ascii.Codes.ClearScreen)
+
+    for(let y = 0; y < this.bufferXYIndices.length; y++) {
+      for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
+        this.stdout.write(this.buffer.charCodeAt(this.bufferXYIndices[y][x]))
+      }
+      if(y != this.bufferXYIndices.length - 1)
+        this.stdout.write(Ascii.Codes.NewLine)
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import { commands } from "../../../src/"
 import { util } from "../../../src"
+import { Ascii } from "../../../src/util"
 
 describe("buffer", () => {
   it("should send to stdout whatever text we send to stdin", async () => {
@@ -156,9 +157,6 @@ describe("buffer", () => {
 
   it("clears buffer and rewrites if text inserted midway through buffer", async () => {
     let testString = "cattle"
-    let expectedOutput = "catatle"
-    let expectedOutput2 = "cata2tle"
-    let leftMoves = 3;
 
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
@@ -168,17 +166,16 @@ describe("buffer", () => {
 
     for(let i = 0; i < testString.length; i++) {
       stdin.write(testString.charCodeAt(i))
-      
-      // read back but throw away the characters we wrote
+
       await stdout.read()
     }
 
-    for(let i = 0; i < leftMoves; i++) {
-      stdin.write(util.Ascii.Codes.LeftArrow)
-      
-      // read back but throw away the characters we wrote
-      await stdout.read()
-    }
+    stdin.write(util.Ascii.Codes.LeftArrow)
+    stdin.write(util.Ascii.Codes.LeftArrow)
+    stdin.write(util.Ascii.Codes.LeftArrow)
+    await stdout.read()
+    await stdout.read()
+    await stdout.read()
 
     // Write a 'a' character
     stdin.write("a".charCodeAt(0))
@@ -208,4 +205,62 @@ describe("buffer", () => {
     expect(await stdout.read()).toBe("l".charCodeAt(0))
     expect(await stdout.read()).toBe("e".charCodeAt(0))
   });
+
+  it("will insert a newline if line exceeds width", async () => {
+    let stdin = new util.Stream<number>()
+    let stdout = new util.Stream<number>()
+    let buffer = new commands.Buffer(stdin, stdout, 1)
+
+    buffer.run()
+
+    stdin.write(97)
+
+    expect(await stdout.read()).toBe(97)
+
+    stdin.write(97)
+
+    expect(await stdout.read()).toBe(util.Ascii.Codes.NewLine)
+    expect(await stdout.read()).toBe(97)
+  })
+
+  it("will allow backspace at end of line", async () => {
+    let stdin = new util.Stream<number>()
+    let stdout = new util.Stream<number>()
+    let buffer = new commands.Buffer(stdin, stdout, 1)
+
+    buffer.run()
+
+    stdin.write(97)
+
+    expect(await stdout.read()).toBe(97)
+
+    stdin.write(Ascii.Codes.Backspace)
+
+    expect(await stdout.read()).toBe(Ascii.Codes.Backspace)
+  })
+
+  it("will handle backspace in middle of word", async() => {
+    let stdin = new util.Stream<number>()
+    let stdout = new util.Stream<number>()
+    let buffer = new commands.Buffer(stdin, stdout)
+
+    buffer.run()
+
+    stdin.write("c".charCodeAt(0))
+    await stdout.read()
+    stdin.write("a".charCodeAt(0))
+    await stdout.read()
+    stdin.write("a".charCodeAt(0))
+    await stdout.read()
+    stdin.write("t".charCodeAt(0))
+    await stdout.read()
+    stdin.write(Ascii.Codes.LeftArrow)
+    await stdout.read()
+    stdin.write(Ascii.Codes.Backspace)
+    expect(await stdout.read()).toBe(Ascii.Codes.ClearScreen)
+    expect(await stdout.read()).toBe("c".charCodeAt(0))
+    expect(await stdout.read()).toBe("a".charCodeAt(0))
+    expect(await stdout.read()).toBe("t".charCodeAt(0))
+
+  })
 })

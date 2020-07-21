@@ -1,6 +1,11 @@
 export class Ascii {
   static Codes = {
     Bell: 7,
+    Backspace: 8,
+    Tab: 9,
+    NewLine: 10,
+
+    ClearScreen: 12,
 
     // TODO: implement the ansi codes instead
     LeftArrow: 17,
@@ -8,20 +13,14 @@ export class Ascii {
     DownArrow: 19,
     UpArrow: 20,
 
-    ClearScreen: 12,
-
-    NewLine: 10
+    Delete: 127
   }
 
-  static isPrintableCharacterCode(code: number): boolean {
-    return code == 10 ||  // space
-           code == 9 ||   // tab 
+  static isVisibleText(code: number): boolean {
+    return code == this.Codes.Tab ||
+           code == this.Codes.NewLine ||
+           code == this.Codes.Backspace || 
+           code == this.Codes.Delete ||
           (code >= 32 && code <= 126) // numbers, letters, punctuation, sushis, sashimis
-  }
-
-  static getPrintableCharacter(code: number): string | undefined {
-    if(Ascii.isPrintableCharacterCode(code)) {
-      return String.fromCharCode(code)
-    } 
   }
 }

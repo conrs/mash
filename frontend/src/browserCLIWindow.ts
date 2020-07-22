@@ -60,7 +60,7 @@ export class BrowserCLIWindow {
       this.cursorElement.style.left = (this.buffer.cursorX * (Math.round((cursorElement.clientWidth * 1.14) * 100) / 100)).toString()
       this.cursorElement.style.top = (this.buffer.cursorY * cursorElement.clientHeight).toString()
 
-      return false;
+      return true;
     })
   }
 }

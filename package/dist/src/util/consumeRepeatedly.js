@@ -1,12 +1,13 @@
 export async function consumeRepeatedly(stream, callback) {
     try {
-        let result = await stream.read();
-        let shouldStop = callback(result);
-        if (!shouldStop) {
-            return await consumeRepeatedly(stream, callback);
-        }
+        return stream.read().then((val) => {
+            let shouldContinue = callback(val);
+            if (shouldContinue) {
+                return consumeRepeatedly(stream, callback);
+            }
+        });
     }
-    catch (_a) {
+    catch (e) {
     }
 }
 //# sourceMappingURL=consumeRepeatedly.js.map

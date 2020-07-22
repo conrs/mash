@@ -2,7 +2,7 @@ import { Stream } from "./stream";
 
 /**
  * Keeps executing an asyncronous call until either the promise rejects, 
- * or the callback returns something truthy.
+ * or the callback returns false.
  * 
  * @param asyncFunc 
  * @param callback 
@@ -12,13 +12,14 @@ export async function consumeRepeatedly<T>(
   callback: (e: T) => boolean
 ): Promise<void> {
   try {
-    let result = await stream.read()
-    let shouldStop = callback(result);
+    return stream.read().then((val) => {
+      let shouldContinue = callback(val);
     
-    if(!shouldStop) {
-      return await consumeRepeatedly(stream, callback)
-    }
-  } catch {
+      if(shouldContinue) {
+        return consumeRepeatedly(stream, callback)
+      }
+    })
+  } catch (e) {
     // The promise finally rejected, so we are done.
   }
 }

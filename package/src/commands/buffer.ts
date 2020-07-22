@@ -10,6 +10,7 @@ import { Stream }from "../util/stream";
 import { Ascii } from "../util/ascii";
 import { BaseCommand } from "./baseCommand";
 import { consumeRepeatedly } from "../util/consumeRepeatedly";
+import { util } from "..";
 
 export class Buffer extends BaseCommand {
   name = "buffer"
@@ -46,14 +47,26 @@ export class Buffer extends BaseCommand {
     return new Promise((resolve, reject) => {
       consumeRepeatedly(this.stdin, (characterCode) => {
         this.handleCharacterCode(characterCode, true)
-        return false;
+        return true;
       }).then(() => resolve(0))
     })
   }
 
+  private isAtEndOfBuffer(): boolean {
+    return (
+      this.cursorY == this.bufferXYIndices.length - 1 &&
+      this.cursorX == this.bufferXYIndices[this.cursorY].length
+    )
+  }
+
+  
+  private bufferIndex(x: number = this.cursorX, y: number = this.cursorY): number {
+    return this.bufferXYIndices[y][x]
+  }
+
   private handleCharacterCode(characterCode: number, shouldWriteStdout: boolean = true): boolean {
     if(Ascii.isVisibleText(characterCode)) {
-      if(this.cursorX == this.bufferXYIndices[this.cursorY].length) {
+      if(this.isAtEndOfBuffer()) {
         // The cursor is at the end of our current line. 
 
         if(characterCode == Ascii.Codes.Backspace) {
@@ -67,12 +80,10 @@ export class Buffer extends BaseCommand {
           }
 
           this.buffer = this.buffer.substring(0, this.buffer.length - 1)
-
         } else if(this.cursorX == this.maxWidth) {
           // Darn, we gotta shuffle this one in on the next line. 
           // Fortunately we can just increment our cursor and then call ourselves again. 
 
-          // Write a newline - if we are in the middle of our buffer it'll get cleared anyway.
           if(shouldWriteStdout)
             this.stdout.write(Ascii.Codes.NewLine)
 
@@ -94,32 +105,26 @@ export class Buffer extends BaseCommand {
 
         return true;
       } else {
-
         if(characterCode == Ascii.Codes.Backspace) {
-          if(this.cursorX == 0) {
+          if(this.cursorX == 0 && this.cursorY == 0) {
             return false;
           }
 
-          let lhs = this.buffer.substring(0, this.cursorX-1)
-          let rhs = this.buffer.substring(this.cursorX)
+          let lhs = this.buffer.substring(0, this.bufferIndex()-1)
+          let rhs = this.buffer.substring(this.bufferIndex())
   
-          this.buffer = lhs + String.fromCharCode(characterCode) + rhs
+          this.buffer = lhs + rhs
       
           let newLineArray = [];
       
-          for(let x = 0; x < this.cursorX-1; x++) {
+          for(let x = 0; x < this.cursorX; x++) {
             newLineArray.push(this.bufferXYIndices[this.cursorY][x])
           }
       
-          newLineArray.push(this.cursorX)
-          newLineArray.push(this.cursorX + 1)
-      
-          for(let x = this.cursorX; x < this.bufferXYIndices[this.cursorY].length; x++) {
-            // we add 1 below because the string offset will have changed by one (to make room for our inserted char)
+          for(let x = this.cursorX+1; x < this.bufferXYIndices[this.cursorY].length; x++) {
             newLineArray.push(this.bufferXYIndices[this.cursorY][x] - 1)
           }
       
-          // bump the index for every following position in our buffer
           for(let y = this.cursorY; y < this.bufferXYIndices.length; y++) {
             for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
               this.bufferXYIndices[y][x] = this.bufferXYIndices[y][x] - 1
@@ -138,20 +143,19 @@ export class Buffer extends BaseCommand {
             this.flushAndRewriteBuffer()
           }
         } else {
-          let lhs = this.buffer.substring(0, this.cursorX)
-          let rhs = this.buffer.substring(this.cursorX)
+          let lhs = this.buffer.substring(0, this.bufferIndex())
+          let rhs = this.buffer.substring(this.bufferIndex())
       
 
           this.buffer = lhs + String.fromCharCode(characterCode) + rhs
       
           let newLineArray = [];
       
-          for(let x = 0; x < this.cursorX; x++) {
+          for(let x = 0; x <= this.cursorX; x++) {
             newLineArray.push(this.bufferXYIndices[this.cursorY][x])
           }
       
-          newLineArray.push(this.cursorX)
-          newLineArray.push(this.cursorX + 1)
+          newLineArray.push(this.bufferXYIndices[this.cursorY][this.cursorX] + 1)
       
           for(let x = this.cursorX + 1; x < this.bufferXYIndices[this.cursorY].length; x++) {
             // we add 1 below because the string offset will have changed by one (to make room for our inserted char)
@@ -171,23 +175,21 @@ export class Buffer extends BaseCommand {
           if(this.bufferXYIndices.length > this.maxWidth) {
             let oldCursorX = this.cursorX;
             let oldCursorY = this.cursorY;
-      
+  // TOSO  
             // trickery - just shift it, then pretend we're doing a new insert at the end of the next line
-            this.nextLine()
-            this.cursorX = this.bufferXYIndices[this.cursorY].length
+            // this.nextLine()
+            // console.log(this.bufferXYIndices)
+            // console.log(this.cursorY)
+            // this.cursorX = this.bufferXYIndices[this.cursorY].length
       
-            this.handleCharacterCode(this.bufferXYIndices[this.cursorY].shift(), false)
+            // this.handleCharacterCode(this.bufferXYIndices[this.cursorY].shift(), false)
       
-            this.cursorX = oldCursorX
-            this.cursorY = oldCursorY
+            // this.cursorX = oldCursorX
+            // this.cursorY = oldCursorY
           }
       
           // increment our cursor position
           this.cursorX++;
-      
-          if(characterCode == Ascii.Codes.NewLine) {
-            this.nextLine()
-          }
       
           // flush and rewrite buffer if applicable
           if(shouldWriteStdout) {
@@ -263,16 +265,7 @@ export class Buffer extends BaseCommand {
     }
   }
   
-  private previousCursorPositionBufferIndex(): number | false {
-    if(this.cursorX == 0 && this.cursorY == 0)
-      return false;
-    else if(this.cursorX > 0) 
-      return this.bufferXYIndices[this.cursorY][this.cursorX - 1]
-    else 
-      return this.bufferXYIndices[this.cursorY - 1][this.bufferXYIndices[this.cursorY - 1].length - 1]
-  }
   
-
   private nextLine(resetX: boolean = true) {
     if(typeof(this.bufferXYIndices[this.cursorY + 1])) {
       this.bufferXYIndices[this.cursorY + 1] = []
@@ -290,8 +283,6 @@ export class Buffer extends BaseCommand {
       for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
         this.stdout.write(this.buffer.charCodeAt(this.bufferXYIndices[y][x]))
       }
-      if(y != this.bufferXYIndices.length - 1)
-        this.stdout.write(Ascii.Codes.NewLine)
     }
   }
 }

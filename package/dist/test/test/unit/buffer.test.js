@@ -107,9 +107,6 @@ describe("buffer", () => {
     });
     it("clears buffer and rewrites if text inserted midway through buffer", async () => {
         let testString = "cattle";
-        let expectedOutput = "catatle";
-        let expectedOutput2 = "cata2tle";
-        let leftMoves = 3;
         let stdin = new util.Stream();
         let stdout = new util.Stream();
         let buffer = new commands.Buffer(stdin, stdout);
@@ -118,10 +115,12 @@ describe("buffer", () => {
             stdin.write(testString.charCodeAt(i));
             await stdout.read();
         }
-        for (let i = 0; i < leftMoves; i++) {
-            stdin.write(util.Ascii.Codes.LeftArrow);
-            await stdout.read();
-        }
+        stdin.write(util.Ascii.Codes.LeftArrow);
+        stdin.write(util.Ascii.Codes.LeftArrow);
+        stdin.write(util.Ascii.Codes.LeftArrow);
+        await stdout.read();
+        await stdout.read();
+        await stdout.read();
         stdin.write("a".charCodeAt(0));
         expect(await stdout.read()).toBe(util.Ascii.Codes.ClearScreen);
         expect(await stdout.read()).toBe("c".charCodeAt(0));

@@ -23,4 +23,16 @@ export class Ascii {
            code == this.Codes.Delete ||
           (code >= 32 && code <= 126) // numbers, letters, punctuation, sushis, sashimis
   }
+
+  static fromCharCode(charCode: number): string {
+    return String.fromCharCode(charCode)
+  }
+
+  static characterCodesToString(characters: number[]): string {
+    return characters.map(Ascii.fromCharCode).join("")
+  }
+
+  static stringToCharacterCodes(string: string): number[] {
+    return string.split("").map((v) => v.charCodeAt(0))
+  }
 }

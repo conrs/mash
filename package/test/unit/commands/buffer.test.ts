@@ -26,8 +26,6 @@ describe("buffer", () => {
 
       expect(await stdout.read()).toBe(testSentence.charCodeAt(i))
     }
-
-    stdin.end()
   })
 
   it("Buffer.run works same as instance run()", async () => {
@@ -261,6 +259,55 @@ describe("buffer", () => {
     expect(await stdout.read()).toBe("c".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
     expect(await stdout.read()).toBe("t".charCodeAt(0))
+  })
 
+  it("will handle newlines in the middle of the buffer", async() => {
+    let stdin = new util.BufferedStreamWriter<number>()
+    let stdout = new util.BufferedStreamReader<number>()
+    let testString = "hey there \n"
+    let moves = [util.Ascii.Codes.UpArrow]
+    let expectedString = "\nhey there \n"
+    new commands.Buffer(stdin.underlying, stdout.underlying).run()
+
+    await stdin.write(util.Ascii.stringToCharacterCodes(testString))
+
+    expect(Ascii.characterCodesToString(stdout.read())).toBe(testString)
+
+    await stdin.write(moves)
+
+    expect(stdout.read()).toEqual(moves)
+
+    await stdin.write([Ascii.Codes.NewLine])
+    
+    let result = stdout.read()
+
+    expect(result[0]).toBe(Ascii.Codes.ClearScreen)
+
+    expect(Ascii.characterCodesToString(result.slice(1))).toBe(expectedString)
+  })
+
+  it("will handle deletes in the middle of the buffer", async() => {
+    let stdin = new util.BufferedStreamWriter<number>()
+    let stdout = new util.BufferedStreamReader<number>()
+    let testString = "hey there \n"
+    let moves = [util.Ascii.Codes.UpArrow, util.Ascii.Codes.RightArrow, util.Ascii.Codes.RightArrow]
+    let expectedString = "hy there \n"
+    new commands.Buffer(stdin.underlying, stdout.underlying).run()
+
+    await stdin.write(util.Ascii.stringToCharacterCodes(testString))
+
+    expect(Ascii.characterCodesToString(stdout.read())).toBe(testString)
+
+    await stdin.write(moves)
+
+    expect(stdout.read()).toEqual(moves)
+
+    await stdin.write([Ascii.Codes.Backspace])
+    
+    let result = stdout.read()
+
+    expect(result[0]).toBe(Ascii.Codes.ClearScreen)
+
+    expect(Ascii.characterCodesToString(result.slice(1))).toBe(expectedString)
   })
 })

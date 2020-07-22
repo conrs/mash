@@ -20,7 +20,7 @@
   "dependencies": {
     "@types/node": "^14.0.23",
     "browserify": "^16.5.1",
-    "conrs-mash": "^0.1.11",
+    "conrs-mash": "^0.1.13",
     "jest": "^26.1.0",
     "tsify": "^4.0.2",
     "typescript": "^3.9.7"

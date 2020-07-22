@@ -26,13 +26,20 @@ export class Buffer extends BaseCommand {
         return new Promise((resolve, reject) => {
             consumeRepeatedly(this.stdin, (characterCode) => {
                 this.handleCharacterCode(characterCode, true);
-                return false;
+                return true;
             }).then(() => resolve(0));
         });
     }
+    isAtEndOfBuffer() {
+        return (this.cursorY == this.bufferXYIndices.length - 1 &&
+            this.cursorX == this.bufferXYIndices[this.cursorY].length);
+    }
+    bufferIndex(x = this.cursorX, y = this.cursorY) {
+        return this.bufferXYIndices[y][x];
+    }
     handleCharacterCode(characterCode, shouldWriteStdout = true) {
         if (Ascii.isVisibleText(characterCode)) {
-            if (this.cursorX == this.bufferXYIndices[this.cursorY].length) {
+            if (this.isAtEndOfBuffer()) {
                 if (characterCode == Ascii.Codes.Backspace) {
                     if (this.cursorX > 0) {
                         this.cursorX--;
@@ -67,19 +74,17 @@ export class Buffer extends BaseCommand {
             }
             else {
                 if (characterCode == Ascii.Codes.Backspace) {
-                    if (this.cursorX == 0) {
+                    if (this.cursorX == 0 && this.cursorY == 0) {
                         return false;
                     }
-                    let lhs = this.buffer.substring(0, this.cursorX - 1);
-                    let rhs = this.buffer.substring(this.cursorX);
-                    this.buffer = lhs + String.fromCharCode(characterCode) + rhs;
+                    let lhs = this.buffer.substring(0, this.bufferIndex() - 1);
+                    let rhs = this.buffer.substring(this.bufferIndex());
+                    this.buffer = lhs + rhs;
                     let newLineArray = [];
-                    for (let x = 0; x < this.cursorX - 1; x++) {
+                    for (let x = 0; x < this.cursorX; x++) {
                         newLineArray.push(this.bufferXYIndices[this.cursorY][x]);
                     }
-                    newLineArray.push(this.cursorX);
-                    newLineArray.push(this.cursorX + 1);
-                    for (let x = this.cursorX; x < this.bufferXYIndices[this.cursorY].length; x++) {
+                    for (let x = this.cursorX + 1; x < this.bufferXYIndices[this.cursorY].length; x++) {
                         newLineArray.push(this.bufferXYIndices[this.cursorY][x] - 1);
                     }
                     for (let y = this.cursorY; y < this.bufferXYIndices.length; y++) {
@@ -94,15 +99,14 @@ export class Buffer extends BaseCommand {
                     }
                 }
                 else {
-                    let lhs = this.buffer.substring(0, this.cursorX);
-                    let rhs = this.buffer.substring(this.cursorX);
+                    let lhs = this.buffer.substring(0, this.bufferIndex());
+                    let rhs = this.buffer.substring(this.bufferIndex());
                     this.buffer = lhs + String.fromCharCode(characterCode) + rhs;
                     let newLineArray = [];
-                    for (let x = 0; x < this.cursorX; x++) {
+                    for (let x = 0; x <= this.cursorX; x++) {
                         newLineArray.push(this.bufferXYIndices[this.cursorY][x]);
                     }
-                    newLineArray.push(this.cursorX);
-                    newLineArray.push(this.cursorX + 1);
+                    newLineArray.push(this.bufferXYIndices[this.cursorY][this.cursorX] + 1);
                     for (let x = this.cursorX + 1; x < this.bufferXYIndices[this.cursorY].length; x++) {
                         newLineArray.push(this.bufferXYIndices[this.cursorY][x] + 1);
                     }
@@ -115,16 +119,8 @@ export class Buffer extends BaseCommand {
                     if (this.bufferXYIndices.length > this.maxWidth) {
                         let oldCursorX = this.cursorX;
                         let oldCursorY = this.cursorY;
-                        this.nextLine();
-                        this.cursorX = this.bufferXYIndices[this.cursorY].length;
-                        this.handleCharacterCode(this.bufferXYIndices[this.cursorY].shift(), false);
-                        this.cursorX = oldCursorX;
-                        this.cursorY = oldCursorY;
                     }
                     this.cursorX++;
-                    if (characterCode == Ascii.Codes.NewLine) {
-                        this.nextLine();
-                    }
                     if (shouldWriteStdout) {
                         this.flushAndRewriteBuffer();
                     }
@@ -194,14 +190,6 @@ export class Buffer extends BaseCommand {
             return false;
         }
     }
-    previousCursorPositionBufferIndex() {
-        if (this.cursorX == 0 && this.cursorY == 0)
-            return false;
-        else if (this.cursorX > 0)
-            return this.bufferXYIndices[this.cursorY][this.cursorX - 1];
-        else
-            return this.bufferXYIndices[this.cursorY - 1][this.bufferXYIndices[this.cursorY - 1].length - 1];
-    }
     nextLine(resetX = true) {
         if (typeof (this.bufferXYIndices[this.cursorY + 1])) {
             this.bufferXYIndices[this.cursorY + 1] = [];
@@ -216,8 +204,6 @@ export class Buffer extends BaseCommand {
             for (let x = 0; x < this.bufferXYIndices[y].length; x++) {
                 this.stdout.write(this.buffer.charCodeAt(this.bufferXYIndices[y][x]));
             }
-            if (y != this.bufferXYIndices.length - 1)
-                this.stdout.write(Ascii.Codes.NewLine);
         }
     }
 }

@@ -48,6 +48,7 @@ function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {
         }
 
         if(char != -1) {
+            console.log("writin", char)
             characterStream.write(char)
         }
 

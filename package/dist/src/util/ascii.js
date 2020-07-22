@@ -6,6 +6,15 @@ export class Ascii {
             code == this.Codes.Delete ||
             (code >= 32 && code <= 126);
     }
+    static fromCharCode(charCode) {
+        return String.fromCharCode(charCode);
+    }
+    static characterCodesToString(characters) {
+        return characters.map(Ascii.fromCharCode).join("");
+    }
+    static stringToCharacterCodes(string) {
+        return string.split("").map((v) => v.charCodeAt(0));
+    }
 }
 Ascii.Codes = {
     Bell: 7,

@@ -1,6 +1,6 @@
 {
   "name": "conrs-mash",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Matt's Awesome Shell - a shell-like browser experience and portfolio joke.",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

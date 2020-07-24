@@ -1,6 +1,6 @@
 import { commands } from "../../../src/"
 import { util } from "../../../src"
-import { Ascii } from "../../../src/util"
+import { Ascii, sleep } from "../../../src/util"
 
 describe("buffer", () => {
   it("should send to stdout whatever text we send to stdin", async () => {
@@ -23,8 +23,9 @@ describe("buffer", () => {
 
     for(let i = 0; i < testSentence.length; i++) {
       stdin.write(testSentence.charCodeAt(i))
+      let char = await stdout.read()
 
-      expect(await stdout.read()).toBe(testSentence.charCodeAt(i))
+      expect(char).toBe(testSentence.charCodeAt(i))
     }
   })
 
@@ -168,18 +169,19 @@ describe("buffer", () => {
       await stdout.read()
     }
 
+    console.log("wee hear")
+
     stdin.write(util.Ascii.Codes.LeftArrow)
     stdin.write(util.Ascii.Codes.LeftArrow)
     stdin.write(util.Ascii.Codes.LeftArrow)
     await stdout.read()
     await stdout.read()
     await stdout.read()
+
 
     // Write a 'a' character
     stdin.write("a".charCodeAt(0))
-
     // We expect a "clear screen" then a flush of the buffer
-
     expect(await stdout.read()).toBe(util.Ascii.Codes.ClearScreen)
     expect(await stdout.read()).toBe("c".charCodeAt(0))
     expect(await stdout.read()).toBe("a".charCodeAt(0))
@@ -188,7 +190,6 @@ describe("buffer", () => {
     expect(await stdout.read()).toBe("t".charCodeAt(0))
     expect(await stdout.read()).toBe("l".charCodeAt(0))
     expect(await stdout.read()).toBe("e".charCodeAt(0))
-
     // k lets try adding another character ( the cursor shouldn't be at the end)
 
     stdin.write("3".charCodeAt(0))
@@ -270,15 +271,15 @@ describe("buffer", () => {
     new commands.Buffer(stdin.underlying, stdout.underlying).run()
 
     await stdin.write(util.Ascii.stringToCharacterCodes(testString))
-
+    await sleep(50)
     expect(Ascii.characterCodesToString(stdout.read())).toBe(testString)
 
     await stdin.write(moves)
-
+    await sleep(50)
     expect(stdout.read()).toEqual(moves)
 
     await stdin.write([Ascii.Codes.NewLine])
-    
+    await sleep(50)
     let result = stdout.read()
 
     expect(result[0]).toBe(Ascii.Codes.ClearScreen)
@@ -295,15 +296,15 @@ describe("buffer", () => {
     new commands.Buffer(stdin.underlying, stdout.underlying).run()
 
     await stdin.write(util.Ascii.stringToCharacterCodes(testString))
-
+    await sleep(50)
     expect(Ascii.characterCodesToString(stdout.read())).toBe(testString)
 
     await stdin.write(moves)
-
+    await sleep(50)
     expect(stdout.read()).toEqual(moves)
 
     await stdin.write([Ascii.Codes.Backspace])
-    
+    await sleep(50)
     let result = stdout.read()
 
     expect(result[0]).toBe(Ascii.Codes.ClearScreen)

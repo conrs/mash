@@ -11,6 +11,7 @@ import { Ascii } from "../util/ascii";
 import { BaseCommand } from "./baseCommand";
 import { consumeRepeatedly } from "../util/consumeRepeatedly";
 import { util } from "..";
+import { BufferedStreamReader, BufferedStreamWriter } from "../util";
 
 export class Buffer extends BaseCommand {
   name = "buffer"
@@ -19,6 +20,7 @@ export class Buffer extends BaseCommand {
 
   private bufferXYIndices: number[][] = [[]] // Tracks the index in `buffer` that a given x, y coordinate refers to.
                                              // For any given (x, y) index, (x+1, y) >= (x, y) && (0, y+1) >= (x, y)
+  private bufferedStdout: BufferedStreamWriter<number>
   public cursorX: number = 0
   public cursorY: number = 0
   public buffer: string = ""
@@ -30,6 +32,7 @@ export class Buffer extends BaseCommand {
   ) {
     super(stdin, stdout)
     this.bufferXYIndices = [[]]
+    this.bufferedStdout = new BufferedStreamWriter(stdout)
   }
 
   static async run(stdin: Stream<number>, stdout: Stream<number>, args: string[] = []): Promise<number> {
@@ -85,7 +88,7 @@ export class Buffer extends BaseCommand {
           // Fortunately we can just increment our cursor and then call ourselves again. 
 
           if(shouldWriteStdout)
-            this.stdout.write(Ascii.Codes.NewLine)
+            this.bufferedStdout.write(Ascii.Codes.NewLine)
 
           this.nextLine()
           return this.handleCharacterCode(characterCode, shouldWriteStdout)
@@ -100,7 +103,7 @@ export class Buffer extends BaseCommand {
         }
 
         if(shouldWriteStdout) {
-          this.stdout.write(characterCode)
+          this.bufferedStdout.write(characterCode)
         }
 
         return true;
@@ -137,7 +140,7 @@ export class Buffer extends BaseCommand {
       
           // decrement our cursor position
           this.cursorX--;
-      
+
           // flush and rewrite buffer if applicable
           if(shouldWriteStdout) {
             this.flushAndRewriteBuffer()
@@ -172,25 +175,8 @@ export class Buffer extends BaseCommand {
           // replace our line's buffer with our new buffer
           this.bufferXYIndices[this.cursorY] = newLineArray
       
-          if(this.bufferXYIndices.length > this.maxWidth) {
-            let oldCursorX = this.cursorX;
-            let oldCursorY = this.cursorY;
-  // TOSO  
-            // trickery - just shift it, then pretend we're doing a new insert at the end of the next line
-            // this.nextLine()
-            // console.log(this.bufferXYIndices)
-            // console.log(this.cursorY)
-            // this.cursorX = this.bufferXYIndices[this.cursorY].length
-      
-            // this.handleCharacterCode(this.bufferXYIndices[this.cursorY].shift(), false)
-      
-            // this.cursorX = oldCursorX
-            // this.cursorY = oldCursorY
-          }
-      
           // increment our cursor position
           this.cursorX++;
-      
           // flush and rewrite buffer if applicable
           if(shouldWriteStdout) {
             this.flushAndRewriteBuffer()
@@ -223,7 +209,7 @@ export class Buffer extends BaseCommand {
       }
 
       if(success && shouldWriteStdout) {
-        this.stdout.write(characterCode)
+        this.bufferedStdout.write(characterCode)
       }
     }
   }
@@ -277,12 +263,9 @@ export class Buffer extends BaseCommand {
   }
 
   private flushAndRewriteBuffer() {
-    this.stdout.write(Ascii.Codes.ClearScreen)
+    this.bufferedStdout.clearBuffer()
 
-    for(let y = 0; y < this.bufferXYIndices.length; y++) {
-      for(let x = 0; x < this.bufferXYIndices[y].length; x++) {
-        this.stdout.write(this.buffer.charCodeAt(this.bufferXYIndices[y][x]))
-      }
-    }
+    this.bufferedStdout.write(Ascii.Codes.ClearScreen)
+    this.bufferedStdout.write(Ascii.stringToCharacterCodes(this.buffer))
   }
 }

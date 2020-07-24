@@ -4,7 +4,7 @@
  * Thus, consuming and writing work on arrays of T, rather than simply T.
  */
 
-import { Stream } from ".";
+import { Stream, Ascii } from ".";
 import { consumeRepeatedly } from "./consumeRepeatedly";
 
 export class BufferedStreamReader<T> {
@@ -31,36 +31,63 @@ export class BufferedStreamReader<T> {
     return result
   }
 }
+
+type Work<T> = {
+  resolveFunc: () => any,
+  buffer: T[],
+}
+
 export class BufferedStreamWriter<T> {
-  static WRITE_SPEED_MS = 5
+  static WRITE_SPEED_MS = 1
   public underlying: Stream<T>
 
   constructor(stream: Stream<T> = new Stream<T>()) {
     this.underlying = stream;
   }
 
-  private writePromise: Promise<void>
+  private workQueue: Work<T>[] = []
+  private timeoutId: NodeJS.Timeout
 
-  async write(contents: T[]): Promise<void> {
-    if(this.writePromise) {
-      this.writePromise = this.writePromise.then(() => this.write(contents))
-    } else {
-      let _contents = [...contents];
-      
-      this.writePromise = new Promise((resolve, reject) => {
-        let intervalId = setInterval(() => {
-          if(_contents.length > 0) {
-            this.underlying.write(_contents.shift())
-          } else {
-            this.writePromise = undefined;
-            resolve()
-            clearInterval(intervalId)
-          }
-        }, BufferedStreamWriter.WRITE_SPEED_MS)
+  async write(contents: T[] | T, itsMyTurn: boolean = false): Promise<void> {
+    let promise = new Promise<void>((resolve) => {
+      this.workQueue.push({
+        resolveFunc: resolve,
+        buffer: contents instanceof Array ? [...contents] : [contents]
       })
-    }
 
-    return this.writePromise
+      if(!this.timeoutId) {
+        this.writeFunc()
+      }
+    })
+
+    return promise;
+  }
+
+  private writeFunc() {
+    if(this.workQueue.length > 0) {
+      let head = this.workQueue[0]
+
+      let character = head.buffer.shift()
+
+      this.underlying.write(character)
+
+      if(head.buffer.length == 0) {
+        head.resolveFunc()
+        this.workQueue.shift()
+      }
+
+      this.timeoutId = setTimeout(this.writeFunc.bind(this), BufferedStreamWriter.WRITE_SPEED_MS)
+    } else {
+      this.timeoutId = undefined;
+    }
+  }
+
+  async clearBuffer() {
+    if(this.timeoutId) {
+      clearTimeout(this.timeoutId)
+      this.timeoutId = undefined;
+    }
+    this.workQueue = []
   }
 }
 

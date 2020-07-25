@@ -26,29 +26,28 @@ export class Buffer extends BaseCommand {
   public buffer: string = ""
 
   constructor(
-    stdin: Stream<number>,
-    stdout: Stream<number>,
-    public maxWidth: number = 100, 
+    public maxWidth: number = 100,
   ) {
-    super(stdin, stdout)
+    super()
     this.bufferXYIndices = [[]]
-    this.bufferedStdout = new BufferedStreamWriter(stdout)
+
   }
 
   static async run(stdin: Stream<number>, stdout: Stream<number>, args: string[] = []): Promise<number> {
     let width = args[0] ? parseInt(args[0], 10) : undefined
 
-    return new Buffer(stdin, stdout, width).run(args)
+    return new Buffer(width).run(stdin, stdout, args)
   }
 
-  async run(args: string[] = []): Promise<number> {
+  async run(stdin: Stream<number>, stdout: Stream<number>, args: string[] = []): Promise<number> {
+    this.bufferedStdout = new BufferedStreamWriter(stdout)
     if(args.length > 1) {
-      Stream.writeString(this.stdout, `Too many arguments passed to ${this.name}: ${args}`)
+      Stream.writeString(stdout, `Too many arguments passed to ${this.name}: ${args}`)
       return 1;
     }
 
     return new Promise((resolve, reject) => {
-      consumeRepeatedly(this.stdin, (characterCode) => {
+      consumeRepeatedly(stdin, (characterCode) => {
         this.handleCharacterCode(characterCode, true)
         return true;
       }).then(() => resolve(0))
@@ -108,6 +107,7 @@ export class Buffer extends BaseCommand {
 
         return true;
       } else {
+        // TODO: redo all of this multi line stuff. 
         if(characterCode == Ascii.Codes.Backspace) {
           if(this.cursorX == 0 && this.cursorY == 0) {
             return false;
@@ -149,7 +149,7 @@ export class Buffer extends BaseCommand {
           let lhs = this.buffer.substring(0, this.bufferIndex())
           let rhs = this.buffer.substring(this.bufferIndex())
       
-
+          
           this.buffer = lhs + String.fromCharCode(characterCode) + rhs
       
           let newLineArray = [];
@@ -176,84 +176,104 @@ export class Buffer extends BaseCommand {
           this.bufferXYIndices[this.cursorY] = newLineArray
       
           // increment our cursor position
-          this.cursorX++;
+          this.cursorX++
+
+          if(characterCode == util.Ascii.Codes.NewLine) {
+            console.log(this.bufferXYIndices)
+            this.bufferXYIndices[this.cursorY] = newLineArray.slice(0, this.cursorX+1)
+            this.bufferXYIndices.splice(this.cursorY+1, 0, newLineArray.slice(this.cursorX+1))
+            this.nextLine()
+          }
           // flush and rewrite buffer if applicable
           if(shouldWriteStdout) {
             this.flushAndRewriteBuffer()
           }
         }
-        
 
-        return true;
+        return true
       }  
     } else {
-      let success = false;
       switch(characterCode) {
         case Ascii.Codes.DownArrow: 
-          success = this.moveDown();
-          break;
+          return this.moveDown(shouldWriteStdout)
         case Ascii.Codes.UpArrow: 
-          success = this.moveUp();
-          break;
+          return this.moveUp(shouldWriteStdout)
         case Ascii.Codes.LeftArrow:
-          success = this.moveLeft();
-          break;
+          return this.moveLeft(shouldWriteStdout)
         case Ascii.Codes.RightArrow:
-          success = this.moveRight();
-          break;
+          return this.moveRight(shouldWriteStdout)
         case Ascii.Codes.Delete: 
-          success = false;
-          break;
+          return false;
         default:
-          success = true;
-      }
-
-      if(success && shouldWriteStdout) {
-        this.bufferedStdout.write(characterCode)
+          if(shouldWriteStdout)
+            this.bufferedStdout.write(characterCode)
+          return true
       }
     }
   }
 
 
-  private moveLeft(): boolean {
+  private moveLeft(shouldWriteStdout: boolean = false): boolean {
     if(this.cursorX > 0) {
-      this.cursorX--;
-      return true;
+      this.cursorX--
+      if(shouldWriteStdout) 
+        this.bufferedStdout.write(util.Ascii.Codes.LeftArrow)
+      return true
     } else {
-      return false;
+      return false
     }
   }
 
-  private moveRight(): boolean {
+  private moveRight(shouldWriteStdout: boolean = false): boolean {
     if(this.cursorX < this.bufferXYIndices[this.cursorY].length) {
-      this.cursorX++;
-      return true;
+      this.cursorX++
+      if(shouldWriteStdout) 
+        this.bufferedStdout.write(util.Ascii.Codes.RightArrow)
+      return true
     } else {
-      return false;
+      return false
     }
   }
 
-  private moveUp(): boolean {
+  private moveUp(shouldWriteStdout: boolean = false): boolean {
     if(this.cursorY > 0) {
-      this.cursorY--;
+      this.cursorY--
+      if(shouldWriteStdout) 
+        this.bufferedStdout.write(util.Ascii.Codes.UpArrow)
+      this.possiblyMoveX(shouldWriteStdout)
+     
       return true;
     } else {
       return false;
     }
   }
 
-  private moveDown(): boolean {
+  private moveDown(shouldWriteStdout: boolean = false): boolean {
     if(this.cursorY < this.bufferXYIndices.length - 1) {
-      this.cursorY++;
+      this.cursorY++
+      if(shouldWriteStdout)
+        this.bufferedStdout.write(util.Ascii.Codes.DownArrow)
+      this.possiblyMoveX(shouldWriteStdout)
       return true;
     } else {
       return false;
     }
   }
   
+  private possiblyMoveX(shouldWriteStdout: boolean = false) {
+    let newX = Math.max(0, Math.min(this.cursorX, this.bufferXYIndices[this.cursorY].length-1))
+
+    if(shouldWriteStdout) {
+      for(let i = 0; i < this.cursorX - newX; i++) {
+        this.bufferedStdout.write(util.Ascii.Codes.LeftArrow)
+      }
+    }
+   
+    this.cursorX = newX
+  }
   
   private nextLine(resetX: boolean = true) {
-    if(typeof(this.bufferXYIndices[this.cursorY + 1])) {
+    if(typeof(this.bufferXYIndices[this.cursorY + 1]) === 'undefined') {
       this.bufferXYIndices[this.cursorY + 1] = []
     }
     this.cursorY++;

@@ -2,6 +2,8 @@ import { Stream } from "../util/stream";
 import { Ascii } from "../util/ascii";
 import { BaseCommand } from "./baseCommand";
 import { consumeRepeatedly } from "../util/consumeRepeatedly";
+import { util } from "..";
+import { BufferedStreamWriter } from "../util";
 export class Buffer extends BaseCommand {
     constructor(stdin, stdout, maxWidth = 100) {
         super(stdin, stdout);
@@ -13,6 +15,7 @@ export class Buffer extends BaseCommand {
         this.cursorY = 0;
         this.buffer = "";
         this.bufferXYIndices = [[]];
+        this.bufferedStdout = new BufferedStreamWriter(stdout);
     }
     static async run(stdin, stdout, args = []) {
         let width = args[0] ? parseInt(args[0], 10) : undefined;
@@ -55,7 +58,7 @@ export class Buffer extends BaseCommand {
                 }
                 else if (this.cursorX == this.maxWidth) {
                     if (shouldWriteStdout)
-                        this.stdout.write(Ascii.Codes.NewLine);
+                        this.bufferedStdout.write(Ascii.Codes.NewLine);
                     this.nextLine();
                     return this.handleCharacterCode(characterCode, shouldWriteStdout);
                 }
@@ -68,7 +71,7 @@ export class Buffer extends BaseCommand {
                     }
                 }
                 if (shouldWriteStdout) {
-                    this.stdout.write(characterCode);
+                    this.bufferedStdout.write(characterCode);
                 }
                 return true;
             }
@@ -116,11 +119,13 @@ export class Buffer extends BaseCommand {
                         }
                     }
                     this.bufferXYIndices[this.cursorY] = newLineArray;
-                    if (this.bufferXYIndices.length > this.maxWidth) {
-                        let oldCursorX = this.cursorX;
-                        let oldCursorY = this.cursorY;
-                    }
                     this.cursorX++;
+                    if (characterCode == util.Ascii.Codes.NewLine) {
+                        console.log(this.bufferXYIndices);
+                        this.bufferXYIndices[this.cursorY] = newLineArray.slice(0, this.cursorX + 1);
+                        this.bufferXYIndices.splice(this.cursorY + 1, 0, newLineArray.slice(this.cursorX + 1));
+                        this.nextLine();
+                    }
                     if (shouldWriteStdout) {
                         this.flushAndRewriteBuffer();
                     }
@@ -129,69 +134,81 @@ export class Buffer extends BaseCommand {
             }
         }
         else {
-            let success = false;
             switch (characterCode) {
                 case Ascii.Codes.DownArrow:
-                    success = this.moveDown();
-                    break;
+                    return this.moveDown(shouldWriteStdout);
                 case Ascii.Codes.UpArrow:
-                    success = this.moveUp();
-                    break;
+                    return this.moveUp(shouldWriteStdout);
                 case Ascii.Codes.LeftArrow:
-                    success = this.moveLeft();
-                    break;
+                    return this.moveLeft(shouldWriteStdout);
                 case Ascii.Codes.RightArrow:
-                    success = this.moveRight();
-                    break;
+                    return this.moveRight(shouldWriteStdout);
                 case Ascii.Codes.Delete:
-                    success = false;
-                    break;
+                    return false;
                 default:
-                    success = true;
-            }
-            if (success && shouldWriteStdout) {
-                this.stdout.write(characterCode);
+                    if (shouldWriteStdout)
+                        this.stdout.write(characterCode);
+                    return true;
             }
         }
     }
-    moveLeft() {
+    moveLeft(shouldWriteStdout = false) {
         if (this.cursorX > 0) {
             this.cursorX--;
+            if (shouldWriteStdout)
+                this.stdout.write(util.Ascii.Codes.LeftArrow);
             return true;
         }
         else {
             return false;
         }
     }
-    moveRight() {
+    moveRight(shouldWriteStdout = false) {
         if (this.cursorX < this.bufferXYIndices[this.cursorY].length) {
             this.cursorX++;
+            if (shouldWriteStdout)
+                this.stdout.write(util.Ascii.Codes.RightArrow);
             return true;
         }
         else {
             return false;
         }
     }
-    moveUp() {
+    moveUp(shouldWriteStdout = false) {
         if (this.cursorY > 0) {
             this.cursorY--;
+            if (shouldWriteStdout)
+                this.stdout.write(util.Ascii.Codes.UpArrow);
+            this.possiblyMoveX(shouldWriteStdout);
             return true;
         }
         else {
             return false;
         }
     }
-    moveDown() {
+    moveDown(shouldWriteStdout = false) {
         if (this.cursorY < this.bufferXYIndices.length - 1) {
             this.cursorY++;
+            if (shouldWriteStdout)
+                this.stdout.write(util.Ascii.Codes.DownArrow);
+            this.possiblyMoveX(shouldWriteStdout);
             return true;
         }
         else {
             return false;
         }
     }
+    possiblyMoveX(shouldWriteStdout = false) {
+        let newX = Math.max(0, Math.min(this.cursorX, this.bufferXYIndices[this.cursorY].length - 1));
+        if (shouldWriteStdout) {
+            for (let i = 0; i < this.cursorX - newX; i++) {
+                this.stdout.write(util.Ascii.Codes.LeftArrow);
+            }
+        }
+        this.cursorX = newX;
+    }
     nextLine(resetX = true) {
-        if (typeof (this.bufferXYIndices[this.cursorY + 1])) {
+        if (typeof (this.bufferXYIndices[this.cursorY + 1]) === 'undefined') {
             this.bufferXYIndices[this.cursorY + 1] = [];
         }
         this.cursorY++;
@@ -199,12 +216,9 @@ export class Buffer extends BaseCommand {
             this.cursorX = 0;
     }
     flushAndRewriteBuffer() {
-        this.stdout.write(Ascii.Codes.ClearScreen);
-        for (let y = 0; y < this.bufferXYIndices.length; y++) {
-            for (let x = 0; x < this.bufferXYIndices[y].length; x++) {
-                this.stdout.write(this.buffer.charCodeAt(this.bufferXYIndices[y][x]));
-            }
-        }
+        this.bufferedStdout.clearBuffer();
+        this.bufferedStdout.write(Ascii.Codes.ClearScreen);
+        this.bufferedStdout.write(Ascii.stringToCharacterCodes(this.buffer));
     }
 }
 //# sourceMappingURL=buffer.js.map

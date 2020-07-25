@@ -1568,10 +1568,10 @@ concat-stream@^1.5.0, concat-stream@^1.6.0, concat-stream@^1.6.1, concat-stream@
     readable-stream "^2.2.2"
     typedarray "^0.0.6"
 
-conrs-mash@^0.1.13:
-  version "0.1.13"
-  resolved "https://registry.yarnpkg.com/conrs-mash/-/conrs-mash-0.1.13.tgz#2d484b5469e24efb74e3fec70216ed42b6133f7a"
-  integrity sha512-VLW2YgN+a9/qnmwjsMUkCVQ3HX1Ky53vIGeW3s8sRa7vPdctqJA84axFFBtWnqISMwbQR31sB4AzBX8ze+UtQA==
+conrs-mash@^0.1.25:
+  version "0.1.25"
+  resolved "https://registry.yarnpkg.com/conrs-mash/-/conrs-mash-0.1.25.tgz#948d7c8cf7279dc3af6429d8e93be8dc4612510f"
+  integrity sha512-NPizmYDMo362a0E1gcssWDNIwlceG9G0yJ94bjxHoiuL5NBhtswv1O5t2B+lxMT7D/4zRv9OiZAdmcK8uHeUww==
 
 console-browserify@^1.1.0:
   version "1.2.0"

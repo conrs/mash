@@ -6,9 +6,9 @@ describe("buffer", () => {
   it("should send to stdout whatever text we send to stdin", async () => {
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     let testSentence = `
       This is a ~silly~ \`sentence\`! Why is it silly? 
@@ -56,9 +56,9 @@ describe("buffer", () => {
   it("should not emit moves to STDOUT if there is nothing in the buffer", async () => {
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     stdin.write(util.Ascii.Codes.DownArrow)
     stdin.write(util.Ascii.Codes.LeftArrow)
@@ -74,9 +74,9 @@ describe("buffer", () => {
 
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     // Ensure you can cursor left right back to the start of the string, but no further.
     for(let i = 0; i < testLine.length; i++) {
@@ -112,15 +112,13 @@ describe("buffer", () => {
   })
 
   it("handles up/down boundaries for multiple lines of input", async() => {
-    let testLine = "Cat\nDog\nPotatoes\n\nPorky Pig\n\n\nLemons Oldsmobile\n\n\nMEOW"
     let numNewlines = 10
-
+    let testLine = "\n\n\n\n\n\n\n\n\n\n"
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
-
+    buffer.run(stdin, stdout)
     // Ensure you can cursor left right back to the start of the string, but no further.
     for(let i = 0; i < testLine.length; i++) {
       stdin.write(testLine.charCodeAt(i))
@@ -140,15 +138,14 @@ describe("buffer", () => {
 
     expect(await stdout.read()).toBe(util.Ascii.Codes.DownArrow)
 
-    // Ensure you can cursor right to the end of the string, and no further.
-
-    for(let i = 0; i < numNewlines - 1; i++) {
+    for(let i = 0; i < numNewlines-1; i++) {
       stdin.write(util.Ascii.Codes.DownArrow)
 
       expect(await stdout.read()).toBe(util.Ascii.Codes.DownArrow)
     }
-
+    console.log("here")
     stdin.write(util.Ascii.Codes.DownArrow)
+    stdin.write(util.Ascii.Codes.RightArrow)
     stdin.write(97)
 
     expect(await stdout.read()).toBe(97)
@@ -159,10 +156,9 @@ describe("buffer", () => {
 
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
-
+    buffer.run(stdin, stdout)
     for(let i = 0; i < testString.length; i++) {
       stdin.write(testString.charCodeAt(i))
 
@@ -208,9 +204,9 @@ describe("buffer", () => {
   it("will insert a newline if line exceeds width", async () => {
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout, 1)
+    let buffer = new commands.Buffer(1)
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     stdin.write(97)
 
@@ -225,9 +221,9 @@ describe("buffer", () => {
   it("will allow backspace at end of line", async () => {
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout, 1)
+    let buffer = new commands.Buffer(1)
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     stdin.write(97)
 
@@ -241,9 +237,9 @@ describe("buffer", () => {
   it("will handle backspace in middle of word", async() => {
     let stdin = new util.Stream<number>()
     let stdout = new util.Stream<number>()
-    let buffer = new commands.Buffer(stdin, stdout)
+    let buffer = new commands.Buffer()
 
-    buffer.run()
+    buffer.run(stdin, stdout)
 
     stdin.write("c".charCodeAt(0))
     await stdout.read()
@@ -268,7 +264,8 @@ describe("buffer", () => {
     let testString = "hey there \n"
     let moves = [util.Ascii.Codes.UpArrow]
     let expectedString = "\nhey there \n"
-    new commands.Buffer(stdin.underlying, stdout.underlying).run()
+    
+    commands.Buffer.run(stdin.underlying, stdout.underlying)
 
     await stdin.write(util.Ascii.stringToCharacterCodes(testString))
     await sleep(50)
@@ -293,7 +290,7 @@ describe("buffer", () => {
     let testString = "hey there \n"
     let moves = [util.Ascii.Codes.UpArrow, util.Ascii.Codes.RightArrow, util.Ascii.Codes.RightArrow]
     let expectedString = "hy there \n"
-    new commands.Buffer(stdin.underlying, stdout.underlying).run()
+    commands.Buffer.run(stdin.underlying, stdout.underlying)
 
     await stdin.write(util.Ascii.stringToCharacterCodes(testString))
     await sleep(50)

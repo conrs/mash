@@ -9,11 +9,11 @@ import { Stream } from "./stream";
  */
 export async function consumeRepeatedly<T>(
   stream: Stream<T>,
-  callback: (e: T) => boolean
+  callback: (e: T) => Promise<boolean> | boolean
 ): Promise<void> {
   try {
-    return stream.read().then((val) => {
-      let shouldContinue = callback(val);
+    return stream.read().then(async (val) => {
+      let shouldContinue = await callback(val);
     
       if(shouldContinue) {
         return consumeRepeatedly(stream, callback)

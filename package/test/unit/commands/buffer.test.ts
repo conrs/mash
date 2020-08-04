@@ -143,7 +143,7 @@ describe("buffer", () => {
 
       expect(await stdout.read()).toBe(util.Ascii.Codes.DownArrow)
     }
-    console.log("here")
+
     stdin.write(util.Ascii.Codes.DownArrow)
     stdin.write(util.Ascii.Codes.RightArrow)
     stdin.write(97)
@@ -164,8 +164,6 @@ describe("buffer", () => {
 
       await stdout.read()
     }
-
-    console.log("wee hear")
 
     stdin.write(util.Ascii.Codes.LeftArrow)
     stdin.write(util.Ascii.Codes.LeftArrow)
@@ -307,5 +305,16 @@ describe("buffer", () => {
     expect(result[0]).toBe(Ascii.Codes.ClearScreen)
 
     expect(Ascii.characterCodesToString(result.slice(1))).toBe(expectedString)
+  })
+
+  it("should exit if we close stdin", async () => {
+    let stdin = new util.Stream<number>()
+    let stdout = new util.Stream<number>()
+
+    let promise = commands.Buffer.run(stdin, stdout)
+
+    stdin.end()
+
+    expect(await promise).toBe(1)
   })
 })

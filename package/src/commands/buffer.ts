@@ -51,6 +51,7 @@ export class Buffer extends BaseCommand {
         this.handleCharacterCode(characterCode, true)
         return true;
       }).then(() => resolve(0))
+      .catch(() => resolve(1))
     })
   }
 
@@ -179,7 +180,6 @@ export class Buffer extends BaseCommand {
           this.cursorX++
 
           if(characterCode == util.Ascii.Codes.NewLine) {
-            console.log(this.bufferXYIndices)
             this.bufferXYIndices[this.cursorY] = newLineArray.slice(0, this.cursorX+1)
             this.bufferXYIndices.splice(this.cursorY+1, 0, newLineArray.slice(this.cursorX+1))
             this.nextLine()

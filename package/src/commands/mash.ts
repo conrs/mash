@@ -1,67 +1,56 @@
 import { BaseCommand } from "./baseCommand";
 import * as util from "../util";
-import { Buffer } from "./buffer"}
+import { Buffer } from "./buffer"
+import { LineReader } from "../util/lineReader";
 
-/**
- * What's my architecture again?
- * 
- * 
- * Streams of numbers. 
- * 
- * Ok, great. So then commands have to be dynamically passed these streams of numbers. 
- * So they can't be in the constructors. They must always be in "run". 
- * 
- * So that's done. Now what's a shell?
- * A shell is a prompt then a buffer in an infinite loop. 
- */
 export class Mash extends BaseCommand {
-  name = "mash";
+  command = "mash";
   helpText = "shell which interprets commands -- reads until newline unless escaped"
   private commands: {
     [index: string]: BaseCommand
   }
 
   private commandBuffer: string = ""
-  private bufferedStdout: util.BufferedStreamWriter<number>
+  private bufferedStdoutWriter: util.BufferedStreamWriter<number>
   static PROMPT = "mash $"
 
   constructor(commands: BaseCommand[]) {
     super()
     this.commands = {}
 
-    commands.forEach((command) => this.commands[command.name] = command)
+    commands.forEach((command) => this.commands[command.command] = command)
   }
 
-  async run(stdin: util.Stream<number>, stdout: util.Stream<number>, args?: string[]): Promise<number> {
-    this.bufferedStdout = new util.BufferedStreamWriter(stdout)
-
+  async run(stdin: util.Stream<number>, stdout: util.Stream<number>, args: string[] = []): Promise<number> {
+    let width = args[0] ? args[0] : undefined
+    this.bufferedStdoutWriter = new util.BufferedStreamWriter(stdout)
     while(true) {
-      this.bufferedStdout.write(util.Ascii.stringToCharacterCodes(Mash.PROMPT))
-      let bufferedStdin = new util.Stream<number>()
+      this.bufferedStdoutWriter.write(util.Ascii.stringToCharacterCodes("\n" + Mash.PROMPT))
+      let bufferStdout = new util.Stream<number>()
 
-      let buffer = Buffer.run(stdin, bufferedStdin)
-      
+      let pipedStdin = util.Stream.pipe(stdin)
+      Buffer.run(pipedStdin, bufferStdout, [width])
+
+      let [lineReaderStream, stdoutStream] = util.Stream.split(bufferStdout)
+
+      util.Stream.pipe(stdoutStream, stdout)
+
+      let command = await new LineReader(lineReaderStream).readLine()
+
+      pipedStdin.end()
+
+      await this.execute(command)
     }
-    await util.consumeRepeatedly(stdin, async (char) => {
-      this.commandBuffer += util.Ascii.characterCodesToString([char])
-      if(char == util.Ascii.Codes.NewLine) {
-        await this.execute(this.commandBuffer)
-        this.commandBuffer = ""
-      }
-      return true;
-    });
-
-    return 0;
   }
 
   private async execute(command: string) {
     let tokens = command.split(" ")
+    console.log(tokens)
+    // if(!this.commands[tokens[0]]) {
+    //   await this.bufferedStdoutWriter.write(util.Ascii.stringToCharacterCodes(`Command '${tokens[0]}' not found.`))
+    // } else {
 
-    if(!this.commands[tokens[0]]) {
-      await this.bufferedStdout.write(util.Ascii.stringToCharacterCodes(`Command '${tokens[0]}' not found.`))
-    } else {
-
-    }
+    // }
   }
-  
+
 }

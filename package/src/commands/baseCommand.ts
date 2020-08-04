@@ -1,8 +1,8 @@
 import { Stream } from "../util/stream"
 
 export abstract class BaseCommand {
-  abstract name: string
-  abstract helpText: string
+  static command: string
+  static helpText: string
   constructor(
   )
     {}

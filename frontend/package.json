@@ -4,8 +4,8 @@
   "description": "Matt's Awesome Shell - a shell-like browser experience and portfolio joke.",
   "main": "index.js",
   "scripts": {
-    "docker:build": "./bin/build",
-    "docker:run": "docker run -p 80:80 local-registry/mash"
+    "docker:build": "pushd ../package; yarn tsc; popd; cp -R ../package/dist ./node_modules/conrs-mash; ./bin/build",
+    "docker:run": "docker run -it -p 80:80 local-registry/mash"
   },
   "repository": {
     "type": "git",

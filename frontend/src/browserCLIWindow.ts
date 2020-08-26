@@ -7,17 +7,21 @@
 //  */
 
 import * as mash from "conrs-mash"
+import { consumeRepeatedly } from "conrs-mash/dist/src/util"
 
 /**
- * CLIWindow holds a buffer and is in charge of keeping the viewport accurate - 
+ * CLIWindow holds a buffer and is in charge of keeping the viewport accurate -
  * this means refreshing the cursor position, state, and keeping the buffer filled. 
  */
 export class BrowserCLIWindow {
   private cursorVisible: boolean
   private buffer: mash.commands.Buffer
+  private mash: mash.commands.Mash
   private stdout: mash.util.Stream<number>
+
+  private bufferStdin: mash.util.Stream<number>
   /**
-   * 
+   *
    * @param outputElement The element output should be written to (via innerHTML)
    * @param cursorElement An element which should be a square exactly 1 character width and 1 character height, with solid color.
    * @param stdin A stream of ASCII characters corresponding to user input.
@@ -30,23 +34,43 @@ export class BrowserCLIWindow {
     let widthInCharacters = Math.floor(this.outputElement.clientWidth / cursorElement.clientWidth) - 20
 
     this.stdout = new mash.util.Stream<number>()
-    this.buffer = new mash.commands.Buffer(this.stdin, this.stdout, widthInCharacters)
-    this.buffer.run()
+    this.bufferStdin = new mash.util.Stream<number>()
+
+    this.buffer = new mash.commands.Buffer(widthInCharacters)
+    this.buffer.run(this.bufferStdin, this.stdout)
+
+    this.writeStringToStdin(this.outputElement.innerHTML, this.bufferStdin)
+
+    // Now we run "mash" but hook up its stdout to our buffer's stdin
+
+    this.mash = new mash.commands.Mash()
+
+    this.mash.run(this.stdin, this.bufferStdin)
+
     // Handle cursor positioning and blinking
     setInterval(() => {
-      // The cursor is visible if stdin is being waited on. 
+      // The cursor is visible if stdin is being waited on.
       if(this.stdin.hasListeners()) {
-        this.cursorVisible = !this.cursorVisible 
+        this.cursorVisible = !this.cursorVisible
       } else {
         this.cursorVisible = false;
-      } 
+      }
       this.cursorElement.style.visibility = this.cursorVisible ? "hidden" : ""
     }, 600)
 
     setInterval(() => {
-      this.outputElement.innerText = this.buffer.buffer
-      this.cursorElement.style.left = (this.buffer.cursorX * (Math.round((cursorElement.clientWidth * 1.14) * 100) / 100)).toString()
-      this.cursorElement.style.top = (this.buffer.cursorY * cursorElement.clientHeight).toString()
+      if(this.outputElement.innerHTML != this.buffer.buffer)
+        this.outputElement.innerHTML = this.buffer.buffer
+        // TODO: below -1 is a hack because i can't figure out why the buffer offset is off by one
+      this.cursorElement.style.left = (this.buffer.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
+      this.cursorElement.style.top = ((this.buffer.cursorY-1) * cursorElement.getBoundingClientRect().height).toString()
     }, 20)
+  }
+
+  private writeStringToStdin(string: string, stream: mash.util.Stream<number>) {
+    if(string != "") {
+      stream.write(string.charCodeAt(0))
+      this.writeStringToStdin(string.substring(1), stream)
+    }
   }
 }

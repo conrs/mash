@@ -50,8 +50,7 @@ export class Buffer extends BaseCommand {
       consumeRepeatedly(stdin, (characterCode) => {
         this.handleCharacterCode(characterCode, true)
         return true;
-      }).then(() => resolve(0))
-      .catch(() => resolve(1))
+      }).catch(() => resolve(1))
     })
   }
 

@@ -9,6 +9,7 @@ function init() {
 
     let outputElement = document.getElementById("console_output")
     let cursorElement = document.getElementById("cursor")
+
     let window = new BrowserCLIWindow(
         outputElement,
         cursorElement,
@@ -30,7 +31,7 @@ function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {
 
     let helper = (keyValue: string) => {
         let char = -1
-            
+
         if(keyValue.length == 1) {
             char = keyValue.charCodeAt(0)
         } else if(keyValue == 'Tab') {
@@ -45,6 +46,8 @@ function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {
             char = mash.util.Ascii.Codes.DownArrow
         } else if(keyValue == "ArrowUp") {
             char = mash.util.Ascii.Codes.UpArrow
+        } else if(keyValue == "Backspace") {
+            char = mash.util.Ascii.Codes.Backspace
         }
 
         if(char != -1) {
@@ -74,10 +77,10 @@ function makeKeyboardInputStream() {
 
     document.addEventListener('keyup', function(e: KeyboardEvent) {
         keyboardStream.write(e.key)
-        
+
         e.stopPropagation()
         e.preventDefault();
     });
-   
+
     return keyboardStream
 }

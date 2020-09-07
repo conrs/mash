@@ -87,4 +87,18 @@ export class Stream<T> {
 
     return stream2
   }
+
+  static filter<T>(source: Stream<T>, filter: (e: T) => boolean): Stream<T> {
+    const result = new Stream<T>()
+
+    consumeRepeatedly(source, (x: T) => {
+      if(filter(x)) {
+        result.write(x)
+      }
+
+      return !source.closed;
+    })
+
+    return result;
+  }
 }

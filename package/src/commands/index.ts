@@ -1,3 +1,4 @@
 export { BaseCommand } from "./baseCommand"
-export { Buffer } from "./buffer"
+export { MattsTechDebtTextContainer } from "./mattsTechDebtTextContainer"
 export { Mash } from "./mash"
+export { SingleLineBuffer } from "./singleLineBuffer"

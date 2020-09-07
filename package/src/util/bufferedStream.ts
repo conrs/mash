@@ -48,7 +48,7 @@ export class BufferedStreamWriter<T> {
   private workQueue: Work<T>[] = []
   private timeoutId: NodeJS.Timeout
 
-  async write(contents: T[] | T, itsMyTurn: boolean = false): Promise<void> {
+  async write(contents: T[] | T): Promise<void> {
     let promise = new Promise<void>((resolve) => {
       this.workQueue.push({
         resolveFunc: resolve,

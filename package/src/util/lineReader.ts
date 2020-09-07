@@ -17,8 +17,8 @@ export class LineReader {
     await consumeRepeatedly(this.stream, (char) => {
       if(char == Ascii.Codes.NewLine) {
         return false;
-      } else if(char == Ascii.Codes.ClearScreen) {
-        this.lineBuffer = "";
+      } else if(char == Ascii.Codes.Backspace) {
+        this.lineBuffer = this.lineBuffer.substring(0, this.lineBuffer.length - 1);
       } else if(Ascii.isVisibleText(char)) {
         this.lineBuffer += Ascii.fromCharCode(char)
       }

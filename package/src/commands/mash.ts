@@ -1,7 +1,8 @@
 import { BaseCommand } from "./baseCommand";
 import * as util from "../util";
-import { Buffer } from "./buffer"
+import { MattsTechDebtTextContainer } from "./mattsTechDebtTextContainer"
 import { LineReader } from "../util/lineReader";
+import { SingleLineBuffer } from "./singleLineBuffer";
 
 export class Mash extends BaseCommand {
   command = "mash";
@@ -41,13 +42,18 @@ export class Mash extends BaseCommand {
 
       let bufferStdout = new util.Stream<number>()
 
-      Buffer.run(bufferStdin, bufferStdout, [width])
+      SingleLineBuffer.run(bufferStdin, bufferStdout)
 
       let [lineReaderStream, stdoutStream] = util.Stream.split(bufferStdout)
 
       // We write buffer's output directly to stdout, but we also read it to see when a line is entered (to run the command).
 
-      util.Stream.pipe(stdoutStream, stdout)
+      let filteredStdoutStream = util.Stream.filter(stdoutStream, (x: number) =>
+        x != util.Ascii.Codes.UpArrow &&
+        x != util.Ascii.Codes.DownArrow
+      )
+
+      util.Stream.pipe(filteredStdoutStream, stdout)
 
       let command = await new LineReader(lineReaderStream).readLine()
 

@@ -15,7 +15,7 @@ import { consumeRepeatedly } from "conrs-mash/dist/src/util"
  */
 export class BrowserCLIWindow {
   private cursorVisible: boolean
-  private buffer: mash.commands.Buffer
+  private techDebtTextContainer: mash.commands.MattsTechDebtTextContainer
   private mash: mash.commands.Mash
   private stdout: mash.util.Stream<number>
 
@@ -36,8 +36,8 @@ export class BrowserCLIWindow {
     this.stdout = new mash.util.Stream<number>()
     this.bufferStdin = new mash.util.Stream<number>()
 
-    this.buffer = new mash.commands.Buffer(widthInCharacters)
-    this.buffer.run(this.bufferStdin, this.stdout)
+    this.techDebtTextContainer = new mash.commands.MattsTechDebtTextContainer(widthInCharacters)
+    this.techDebtTextContainer.run(this.bufferStdin, this.stdout)
 
     this.writeStringToStdin(this.outputElement.innerHTML, this.bufferStdin)
 
@@ -59,11 +59,11 @@ export class BrowserCLIWindow {
     }, 600)
 
     setInterval(() => {
-      if(this.outputElement.innerHTML != this.buffer.buffer)
-        this.outputElement.innerHTML = this.buffer.buffer
-        // TODO: below -1 is a hack because i can't figure out why the buffer offset is off by one
-      this.cursorElement.style.left = (this.buffer.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
-      this.cursorElement.style.top = ((this.buffer.cursorY-1) * cursorElement.getBoundingClientRect().height).toString()
+      if(this.outputElement.innerHTML != this.techDebtTextContainer.buffer)
+        this.outputElement.innerHTML = this.techDebtTextContainer.buffer
+
+      this.cursorElement.style.left = (this.techDebtTextContainer.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
+      this.cursorElement.style.top = (this.techDebtTextContainer.cursorY * cursorElement.getBoundingClientRect().height).toString()
     }, 20)
   }
 

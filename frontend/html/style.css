@@ -1,4 +1,4 @@
-html{
+html {
   background: black;
   color: #B4FFAE;
   font-size: 10pt;
@@ -6,30 +6,32 @@ html{
   line-height: 15px;
 }
 
-div{
-  width: 800px;
-  overflow:hidden;
+#container {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 div#console_output
 {
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
-.cursor {
-        font-size: 12px;
-        background-color: #B4FFAE;
-        color: #B4FFAE;
-        position: relative;
-      }
+#cursor {
+  font-size: 12px;
+  background-color: #B4FFAE;
+  color: #B4FFAE;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
       
-textarea#text_catcher 
-{ 
-        left: -1000px;
-        position: absolute;
-
+textarea#text_catcher { 
+  left: -1000px;
+  position: absolute;
 }
-a{
+
+a {
   color: #96FF8C;
   font-size: 10pt;
   text-decoration: underline;

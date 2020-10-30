@@ -1,5 +1,6 @@
 import { BaseCommand } from "./baseCommand";
 import * as util from "../util";
+<<<<<<< HEAD
 import { Buffer } from "./buffer/buffer";
 import { GithubBlogFilesystem } from "../filesystem/githubBlogFs";
 import { Ls } from "./ls";
@@ -24,6 +25,24 @@ export class Mash extends BaseCommand {
     "cat": new Cat(this.filesystem),
     "cd": new Cd(this.filesystem)
   }
+=======
+import { MattsTechDebtTextContainer } from "./mattsTechDebtTextContainer"
+import { LineReader } from "../util/lineReader";
+import { SingleLineBuffer } from "./singleLineBuffer";
+
+export class Mash extends BaseCommand {
+  command = "mash";
+  helpText = "shell which interprets commands -- reads until newline unless escaped"
+  static commands: {
+    [index: string]: BaseCommand
+  }
+  static PROMPT = "mash $ "
+
+  private stdin: util.Stream<number>
+  private stdout: util.Stream<number>
+  private stdoutWriter: util.BufferedStreamWriter<number>
+  private cursorY: number; // Needed to ensure cursor never
+>>>>>>> master
 
   /**
    * Responsibilities:
@@ -72,6 +91,7 @@ export class Mash extends BaseCommand {
   }
 
   private async execute(command: string) {
+<<<<<<< HEAD
     const tokens = command.split(" ")
     const cmd = this.commands[tokens[0]]
     if(cmd) {
@@ -80,6 +100,14 @@ export class Mash extends BaseCommand {
     } else {
       this.bufferStdin.write(util.Ascii.stringToCharacterCodes(`Command '${tokens[0]}' not found.\n`))
     }
+=======
+    await this.stdoutWriter.write(util.Ascii.stringToCharacterCodes(`I wanted to run '${command}'\n`))
+    // if(!this.commands[tokens[0]]) {
+    //   await this.bufferedStdoutWriter.write(util.Ascii.stringToCharacterCodes(`Command '${tokens[0]}' not found.`))
+    // } else {
+
+    // }
+>>>>>>> master
   }
 
 }

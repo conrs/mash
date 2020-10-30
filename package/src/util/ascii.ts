@@ -1,11 +1,14 @@
 export class Ascii {
   static Codes = {
+    StartOfText: 2,
     Bell: 7,
     Backspace: 8,
     Tab: 9,
     NewLine: 10,
 
     ClearScreen: 12,
+    CarriageReturn: 13,
+    Cancel: 24,
 
     // TODO: implement the ansi codes instead
     LeftArrow: 17,
@@ -19,7 +22,7 @@ export class Ascii {
   static isVisibleText(code: number): boolean {
     return code == this.Codes.Tab ||
            code == this.Codes.NewLine ||
-           code == this.Codes.Backspace || 
+           code == this.Codes.Backspace ||
            code == this.Codes.Delete ||
           (code >= 32 && code <= 126) // numbers, letters, punctuation, sushis, sashimis
   }

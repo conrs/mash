@@ -1,5 +1,4 @@
 import { Stream } from "./stream";
-import { consumeRepeatedly } from "./consumeRepeatedly";
 import { Ascii } from "./ascii";
 
 export class LineReader {
@@ -9,18 +8,20 @@ export class LineReader {
     private stream: Stream<number>
   ) {}
 
-  end() {
-    this.stream.end()
-  }
 
   async readLine(): Promise<string> {
-    await consumeRepeatedly(this.stream, (char) => {
-      if(char == Ascii.Codes.NewLine) {
-        return false;
-      } else if(char == Ascii.Codes.Backspace) {
-        this.lineBuffer = this.lineBuffer.substring(0, this.lineBuffer.length - 1);
-      } else if(Ascii.isVisibleText(char)) {
-        this.lineBuffer += Ascii.fromCharCode(char)
+    await this.stream.consume((characters) => {
+      for(let i = 0; i < characters.length; i++) {
+        let char = characters[i]
+        if(char == Ascii.Codes.NewLine) {
+          return false;
+        } else if(char == Ascii.Codes.Backspace) {
+          this.lineBuffer = this.lineBuffer.substring(0, this.lineBuffer.length - 1);
+        } else if(Ascii.Codes.ClearScreen == char) {
+          this.lineBuffer = ""
+        } else if(Ascii.isVisibleText(char)) {
+          this.lineBuffer += Ascii.fromCharCode(char)
+        }
       }
 
       return true

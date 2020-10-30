@@ -1,104 +1,119 @@
-import { consumeRepeatedly } from "./consumeRepeatedly"
-import { range } from "./range"
+/**
+ * Streams assume one producer and one consumer currently.
+ *
+ * They do not rely on promises/asyncronicity for per-character emission since it tended to be
+ * too slow (all the streams in aggregate would show visible delay in outputting text)
+ *
+ * Instead, users can "read()" (which might return empty array) or "wait()" which will resolve
+ * when the stream has content to read (and also since its deferred to next tick, allows for
+ * content written at the same "time" to pile up)
+ */
 
-type DeferredPromise<T> = {
-  resolve: (v: T) => void,
-  reject: (reason: any) => void
-}
-
-export class Stream<T> {
-  closed: boolean = false
-  private listeners: DeferredPromise<T>[] = []
+ export class Stream<T> {
   private buffer: T[] = []
+  private listener: {resolve: () => any, reject: () => any} = undefined
 
-  async read(): Promise<T> {
-    if(!this.closed)
-      return new Promise((resolve, reject) => {
-        if(this.buffer.length > 0)
-          resolve(this.buffer.shift())
-        else 
-          this.listeners.push({
-            resolve: resolve,
-            reject: reject
-          })
-      })
-    else
-      throw new Error("Can't listen to a closed stream!")
+  constructor() {
   }
 
-  write(value: T) {
-    if(this.listeners.length > 0)
-      this.listeners.shift().resolve(value)
-    else
-      this.buffer.push(value)
+  hasListener(): boolean {
+    return this.listener !== undefined
   }
 
-  end() {
-    while(this.listeners.length > 0) {
-      this.listeners.shift().reject("Stream closed unexpectedly")
-    }
-    this.closed = true
-  }
+  write(x: T | T[]) {
+    x = Array.isArray(x) ? x : [x]
 
-  hasListeners(): boolean {
-    return this.listeners.length > 0;
-  }
+    this.buffer = this.buffer.concat(x)
 
-  static writeString(stream: Stream<number>, string: string) {
-    for(let i = 0; i < string.length; i++) {
-      stream.write(string.charCodeAt(i))
+    if(this.listener) {
+      let resolver = this.listener.resolve
+      this.listener = undefined
+      resolver()
     }
   }
 
-  static split<T>(stream: Stream<T>, branching: number = 2, propogateCloses: boolean = false): Stream<T>[] {
-    let streams = range(0, branching).map(() => new Stream<T>())
+  read(): T[] {
+    if(this.listener) {
+      throw new Error("whoa there - one read or listen at a time dawg")
+    }
 
-    consumeRepeatedly(stream, (char) => {
-      streams = streams.filter((x) => !x.closed)
-      if(streams.length > 0) {
-        streams.forEach((s) => s.write(char))
-      } else {
-        // nobody was listening anymore, so write the char back
-        stream.write(char)
-      }
-      return streams.length > 0
-    }).catch(() => {
-      if(propogateCloses) {
-        streams.forEach((stream) => stream.end())
-      }
-    })
+    let b = this.buffer
+    this.buffer = []
 
-    return streams;
+    return b
   }
 
-  static pipe<T>(stream1: Stream<T>, stream2: Stream<T> = new Stream<T>(), propogateCloses: boolean = false): Stream<T> {
-    consumeRepeatedly(stream1, (x: T) => {
-      if(!stream2.closed)
-        stream2.write(x)
-      else
-        stream1.write(x)
+  wait(): Promise<void> {
+    if(this.listener) {
+      throw new Error("more than one thing is waiting on this stream")
+    }
+    return new Promise((resolve, reject) => {
+      let b = this.read()
 
-      return !stream2.closed;
-    }).catch(() => {
-      if(propogateCloses) {
-        stream2.end()
-      }
-    })
-
-    return stream2
-  }
-
-  static filter<T>(source: Stream<T>, filter: (e: T) => boolean): Stream<T> {
-    const result = new Stream<T>()
-
-    consumeRepeatedly(source, (x: T) => {
-      if(filter(x)) {
-        result.write(x)
+      this.listener = {
+        resolve: resolve,
+        reject: reject
       }
 
-      return !source.closed;
+      if(b.length > 0) {
+        // write it back so the next call to read will get it
+        this.write(b)
+      }
+    })
+  }
+
+  async flush() {
+    let emptyTicks = 0
+    const tickTarget = 5
+
+    await new Promise((resolve) => {
+      let interval = setInterval(() => {
+        let data = this.read()
+        if(data.length > 0)
+          emptyTicks = 0
+        else
+          emptyTicks++
+
+        if(emptyTicks >= tickTarget) {
+          clearInterval(interval)
+          resolve()
+        }
+      }, 1)
+    })
+  }
+
+  async consume(handler: (v: T[]) => boolean | void, id: string = "none") {
+    let shouldKeepGoing: boolean = true
+    while(shouldKeepGoing) {
+      await this.wait()
+      shouldKeepGoing = handler(this.read()) !== false
+    }
+  }
+
+  /**
+   * Split will split the current stream into n streams. Is handy for cases
+   * where you wish to close a stream or run multiple commands on the same stream.
+   *
+   * @param n Number of streams to create
+   */
+  split(n: number = 2): Stream<T>[] {
+    let streams = [...Array(n).keys()].map(() => new Stream<T>())
+
+    this.consume((data) => streams.forEach((stream) => stream.write(data)))
+
+    return streams
+  }
+
+  pipe(otherStream: Stream<T>) {
+    this.consume((data) => otherStream.write(data))
+  }
+
+  filter(f: (x: T) => boolean): Stream<T> {
+    let newStream = new Stream<T>()
+    this.consume((data) => {
+      newStream.write(data.filter(f))
     })
 
-    return result;
+    return newStream
   }
-}
+ }

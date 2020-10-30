@@ -10,23 +10,9 @@ describe("lineReader", () => {
 
     let promise = lineReader.readLine()
 
-    Stream.writeString(stdin, `${line}\n`)
+    stdin.write(Ascii.stringToCharacterCodes(`${line}\n`))
 
     expect(await promise).toBe(line)
-  })
-
-  it("doesn't get confused if output gets cleared", async () => {
-    let stdin = new Stream<number>()
-    let lineReader = new LineReader(stdin)
-    let line1 = "This is a line of text"
-    let line2 = "I hope this one happens"
-
-    let promise = lineReader.readLine()
-
-    Stream.writeString(stdin, line1)
-    stdin.write(Ascii.Codes.ClearScreen)
-    Stream.writeString(stdin, `${line2}\n`)
-    expect(await promise).toBe(line2)
   })
 
   it("ignores non-text characters", async () => {
@@ -36,12 +22,27 @@ describe("lineReader", () => {
 
     let promise = lineReader.readLine()
 
-    Stream.writeString(stdin, line)
+    stdin.write(Ascii.stringToCharacterCodes(line))
     stdin.write(1)
     stdin.write(2)
     stdin.write(Ascii.Codes.LeftArrow)
     stdin.write(Ascii.Codes.NewLine)
 
     expect(await promise).toBe(line)
+  })
+
+  it("handles backspaces as you would expect", async () => {
+    let stdin = new Stream<number>()
+    let lineReader = new LineReader(stdin)
+    let line = "This is a line of text"
+
+    let promise = lineReader.readLine()
+
+    stdin.write(Ascii.stringToCharacterCodes(line))
+    stdin.write(Ascii.Codes.Backspace)
+    stdin.write(Ascii.Codes.Backspace)
+    stdin.write(Ascii.Codes.NewLine)
+
+    expect(await promise).toBe(line.substring(0, line.length - 2))
   })
 })

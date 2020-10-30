@@ -14,7 +14,7 @@
 var COMMANDS = 
 {
 	raw: 
-	[ 
+	[
 		{
 			name: "help",
 			about: "this help menu",

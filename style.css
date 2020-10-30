@@ -25,11 +25,6 @@ div#console_output
   left: 0px;
   top: 0px;
 }
-      
-textarea#text_catcher { 
-  left: -1000px;
-  position: absolute;
-}
 
 a {
   color: #96FF8C;
@@ -37,22 +32,4 @@ a {
   text-decoration: underline;
   font-family: "pragmata tt", "pragmatapro", "courier new", "lucida console", monospace;
   font-weight: bold;
-}
-
-a.stealth-link{
-  color: #B4FFAE;
-  font-size: 10pt;
-  font-weight: normal;
-  text-decoration: none;
-}
-
-textarea:focus, input:focus{
-    outline: none;
-}
-
-div#user_prompt
-{
-  display: inline;
-  width: auto;
-  white-space: pre;
 }

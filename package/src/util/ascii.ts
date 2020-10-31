@@ -1,6 +1,7 @@
 export class Ascii {
   static Codes = {
     StartOfText: 2,
+    EndOfTransmission: 4,
     Bell: 7,
     Backspace: 8,
     Tab: 9,

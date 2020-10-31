@@ -5,6 +5,9 @@ import { GithubBlogFilesystem } from "../filesystem/githubBlogFs";
 import { Ls } from "./ls";
 import { Cat } from "./cat";
 import { Cd } from "./cd";
+import { fold } from "../util/fold";
+import { Echo } from "./echo";
+import { Rotate } from "./rotate";
 
 export class Mash extends BaseCommand {
   command = "mash";
@@ -22,7 +25,9 @@ export class Mash extends BaseCommand {
   } = {
     "ls": new Ls(this.filesystem),
     "cat": new Cat(this.filesystem),
-    "cd": new Cd(this.filesystem)
+    "cd": new Cd(this.filesystem),
+    "echo": new Echo(),
+    "rotate": new Rotate()
   }
 
   /**
@@ -71,15 +76,48 @@ export class Mash extends BaseCommand {
     }
   }
 
-  private async execute(command: string) {
-    const tokens = command.split(" ")
-    const cmd = this.commands[tokens[0]]
-    if(cmd) {
-      await cmd.run(this.stdin, this.bufferStdin, tokens.slice(1))
+
+  private async execute(string: string) {
+    type meow = {run: () => Promise<any>, stream: util.Stream<number>}
+
+    try {
+      let result = fold(string.split("|"), {stream: this.stdin, run: () => Promise.resolve()} as meow, (acc, command) => {
+        let tokens = command.split(" ").filter((x) => x != "")
+
+        let cmd = this.commands[tokens[0]]
+        let args = tokens.slice(1)
+        let stream = new util.Stream<number>()
+
+        if(!cmd) {
+          throw new CommandNotFoundError(tokens[0])
+        }
+
+        return {
+          run: async () => acc.run().then(async ()=> {
+             await cmd.run(acc.stream, stream, args)
+             stream.write(util.Ascii.Codes.EndOfTransmission)
+          }),
+          stream: stream
+        }
+      })
+
+      result.stream.pipe(this.bufferStdin)
+
+      await result.run()
       this.bufferStdin.write(util.Ascii.Codes.NewLine)
-    } else {
-      this.bufferStdin.write(util.Ascii.stringToCharacterCodes(`Command '${tokens[0]}' not found.\n`))
+    } catch(e) {
+      if(e instanceof CommandNotFoundError) {
+        this.bufferStdin.write(util.Ascii.stringToCharacterCodes(e.message))
+      } else {
+        throw e
+      }
     }
   }
+}
 
+class CommandNotFoundError extends Error {
+  constructor(command: string) {
+    super()
+    this.message = `Command '${command}' not found.\n`
+  }
 }

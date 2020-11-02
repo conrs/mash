@@ -61,6 +61,9 @@ export class BrowserCLIWindow {
 
       this.processCharacters(buffer)
 
+      if(this.outputElement.innerHTML != this.buffer)
+        this.outputElement.innerHTML = this.buffer
+        
       this.cursorElement.style.left = (this.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
       this.cursorElement.style.top = (this.cursorY * cursorElement.getBoundingClientRect().height).toString()
     }, 10)
@@ -72,7 +75,7 @@ export class BrowserCLIWindow {
         case mash.util.Ascii.Codes.StartOfText:
           // Hackity hack because html might cause line break that doesnt
           // actually show up, so this keeps cursor in order.
-          this.cursorY = this.outputElement.innerText.split("\n").length - 1
+          this.cursorY = this.buffer.split("\n").length - 1
           break;
         case mash.util.Ascii.Codes.UpArrow:
           this.cursorY = Math.max(0, this.cursorY-1);
@@ -93,7 +96,6 @@ export class BrowserCLIWindow {
         default:
           if(mash.util.Ascii.isVisibleText(character)) {
             this.buffer += mash.util.Ascii.characterCodesToString([character])
-            this.outputElement.innerHTML = this.buffer
           }
           document.getElementsByTagName("body")[0].scrollTop = document.getElementsByTagName("body")[0].clientHeight * 20
           break;

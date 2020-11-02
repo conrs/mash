@@ -33,7 +33,7 @@ export class BrowserCLIWindow {
     private cursorElement: HTMLElement,
     private stdin: mash.util.Stream<number>
   ) {
-    let widthInCharacters = Math.floor((this.outputElement.clientWidth / cursorElement.clientWidth) * .87)
+    let widthInCharacters = Math.floor((document.body.clientWidth / cursorElement.clientWidth) * .87)
 
     let stdout = new mash.util.Stream<number>()
 
@@ -63,7 +63,7 @@ export class BrowserCLIWindow {
 
       if(this.outputElement.innerHTML != this.buffer)
         this.outputElement.innerHTML = this.buffer
-        
+
       this.cursorElement.style.left = (this.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
       this.cursorElement.style.top = (this.cursorY * cursorElement.getBoundingClientRect().height).toString()
     }, 10)

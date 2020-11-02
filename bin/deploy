@@ -1,4 +1,12 @@
-set -ex 
+set -ex
+
+pushd frontend
+yarn docker:build
+popd
+
+git add .
+git commit -m 'Deploy'
+git push
 
 git push --delete origin gh-pages || true
 git subtree push --prefix frontend/html origin gh-pages

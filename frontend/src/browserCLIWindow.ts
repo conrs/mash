@@ -75,7 +75,7 @@ export class BrowserCLIWindow {
         case mash.util.Ascii.Codes.StartOfText:
           // Hackity hack because html might cause line break that doesnt
           // actually show up, so this keeps cursor in order.
-          this.cursorY = this.outputElement.innerHTML.split("\n").length - 1
+          this.cursorY = this.outputElement.innerText.split("\n").length - 1
           break;
         case mash.util.Ascii.Codes.UpArrow:
           this.cursorY = Math.max(0, this.cursorY-1);

@@ -6,6 +6,11 @@ html {
   line-height: 15px;
 }
 
+body {
+  width: 100%;
+  overflow: hidden
+}
+
 #container {
   position: relative;
   width: 100%;

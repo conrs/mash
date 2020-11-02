@@ -1,8 +1,8 @@
-import { BaseCommand } from ".";
+import { Command } from ".";
 import { Filesystem } from "../filesystem/core";
 import { Stream, Ascii} from "../util";
 
-export class Cd extends BaseCommand {
+export class Cd extends Command {
   async run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
     let path = args[0] ? args[0] : ""
 

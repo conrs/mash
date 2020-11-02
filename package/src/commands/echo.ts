@@ -1,9 +1,9 @@
-import { BaseCommand } from ".";
+import { Command } from ".";
 import { Filesystem, FilesystemRootNode, FilesystemLeafNode } from "../filesystem/core";
 import { Stream } from "../util";
 import { util } from "..";
 
-export class Echo extends BaseCommand {
+export class Echo extends Command {
   async run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
     stdout.write(util.Ascii.stringToCharacterCodes(args ? args.join(" "): ""))
     return 0

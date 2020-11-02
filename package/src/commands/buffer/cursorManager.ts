@@ -1,8 +1,11 @@
-import { Stream, Ascii } from "../../util";
+import { Ascii } from "../../util";
 import { BufferNode } from "./bufferNode";
 import { Point } from "./point";
 
 export class CursorManager {
+  // Since we track our position using the "nodeToLeft", we have to handle the case where
+  // we have seeked back to the beginning of the buffer. Here, nodeToLeft would be undefined,
+  // so we populate this field when we use left arrows or backspaces to move left.
   private ohMagicRightNode: BufferNode
 
   constructor(

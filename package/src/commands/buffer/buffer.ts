@@ -1,18 +1,22 @@
 import { Ascii, Stream } from "../../util";
-import { BaseCommand } from "..";
+import { Command } from "..";
 import { CursorManager } from "./cursorManager";
 import { BufferNode, CharacterNode, HardWrapNode } from "./bufferNode";
 
 
 /**
- * This command handles cursor positioning as well as buffering of input, allowing for in-place editing of
- * multiple lines of input.
+ * This command has a lot of responsibilities:
+ *  - Managing cursor (blinking box) position
+ *  - Managing text insertions/deletions/what have you
+ *  - Hard-wrapping text if it hits the limit
+ *
+ * To picture what this command does, think of a typewriter, except a magic one that can delete
+ * text it has placed before.
  */
-export class Buffer extends BaseCommand {
+export class Buffer extends Command {
   name = "buffer"
   helpText = "Provides a buffer for user input, echoing it to standard out, and allowing for cursor movement"
 
-  // Our two main tasks share the same underlying data - a doubly linked list of nodes representing the characters in our buffer.
   private cursorManager: CursorManager // This handles "moves" and determines the series of up, right, down, or left characters to emit.
                                        // as well as our X, Y position currently in the buffer.
 
@@ -47,6 +51,7 @@ export class Buffer extends BaseCommand {
         for(let i = 0; i < characterCodes.length; i++) {
           let characterCode = characterCodes[i]
 
+          // StartOfText essentially resets the buffer
           if(characterCode == Ascii.Codes.StartOfText) {
             this.cursorManager.clear()
             this.lastNode = undefined
@@ -63,10 +68,11 @@ export class Buffer extends BaseCommand {
     let node = new CharacterNode(characterCode, this.cursorManager.nodeToLeft)
     let isAtEndOfBuffer = !this.lastNode || this.cursorManager.nodeToLeft == this.lastNode || this.cursorManager.nodeToLeft?.left == this.lastNode
 
+    // First we see if the cursor manager can handle this node (is it valid/possible etc)
+    // If not, we don't have to do anything
     if(this.cursorManager.handleNode(node)) {
       if(Ascii.isVisibleText(characterCode)) {
         if(isAtEndOfBuffer) {
-          // Simple case; we are at end of buffer.
           this.lastNode = this.cursorManager.nodeToLeft
           this.stdout.write(node.character)
 
@@ -77,11 +83,15 @@ export class Buffer extends BaseCommand {
             this.stdout.write(Ascii.Codes.NewLine)
           }
         } else {
+          // We are somewhere in the middle of our buffer - so have to insert the new text.
           let pendingNodes: BufferNode[] = []
           let temp = this.lastNode
 
+          // If the character typed was a backspace, then the manager has already handled removing this node,
+          // so we seek to just after the current cursor position. Else, we want to seek right to it.
           let target = characterCode == Ascii.Codes.Backspace ? this.cursorManager.nodeToLeft : this.cursorManager.nodeToLeft.left
 
+          // We have to emit a backspace for every character after our cursor position
           while(temp != target) {
             this.stdout.write(Ascii.Codes.Backspace)
 
@@ -92,6 +102,8 @@ export class Buffer extends BaseCommand {
             temp = temp.left
           }
 
+          // Now we have to emit the current character
+
           if(characterCode == Ascii.Codes.Backspace) {
             this.stdout.write(characterCode)
           } else if(target) {
@@ -99,6 +111,9 @@ export class Buffer extends BaseCommand {
           } else {
             this.stdout.write(characterCode)
           }
+
+          // Now we have to emit all the characters that we had previously backspaced thru, and recalculate hard
+          // wraps
 
           let newCursorManager = new CursorManager(new Stream(), this.cursorManager.nodeToLeft, this.cursorManager.point)
           let last = this.cursorManager.nodeToLeft

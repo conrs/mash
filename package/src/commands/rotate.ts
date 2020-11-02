@@ -1,4 +1,4 @@
-import { BaseCommand } from ".";
+import { Command } from ".";
 import { Stream } from "../util";
 import { util } from "..";
 
@@ -7,7 +7,7 @@ import { util } from "..";
 // We can't suppress by default, but we could build in signalling for "buffering" versus "emitting"
 // output in mash.
 // We may also want to pre-empt things.
-export class Rotate extends BaseCommand {
+export class Rotate extends Command {
   async run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
     let amount = 1
     if(args && args[0]) {
@@ -24,7 +24,6 @@ export class Rotate extends BaseCommand {
       try {
         characters.forEach((character) => {
           if(character == util.Ascii.Codes.EndOfTransmission) {
-            console.log("its hit tho")
             throw new HitEOT()
           }
 
@@ -50,7 +49,6 @@ export class Rotate extends BaseCommand {
       }
     })
 
-    console.log("Done")
     return 0
   }
 }

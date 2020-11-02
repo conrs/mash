@@ -1,6 +1,6 @@
 import { Stream } from "../util/stream"
 
-export abstract class BaseCommand {
+export abstract class Command {
   command: string
   helpText: string
   

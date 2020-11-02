@@ -1,4 +1,4 @@
-import { BaseCommand } from "./baseCommand";
+import { Command } from "./baseCommand";
 import * as util from "../util";
 import { Buffer } from "./buffer/buffer";
 import { GithubBlogFilesystem } from "../filesystem/githubBlogFs";
@@ -9,7 +9,7 @@ import { fold } from "../util/fold";
 import { Echo } from "./echo";
 import { Rotate } from "./rotate";
 
-export class Mash extends BaseCommand {
+export class Mash extends Command {
   command = "mash";
   helpText = "shell which interprets commands"
 
@@ -21,7 +21,7 @@ export class Mash extends BaseCommand {
   prompt = () => `mash:/${this.filesystem.pwd.join("/")} $ `
 
   commands: {
-    [index: string]: BaseCommand
+    [index: string]: Command
   } = {
     "ls": new Ls(this.filesystem),
     "cat": new Cat(this.filesystem),

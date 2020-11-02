@@ -1,9 +1,9 @@
-import { BaseCommand } from ".";
+import { Command } from ".";
 import { Filesystem, FilesystemRootNode, FilesystemLeafNode } from "../filesystem/core";
 import { Stream } from "../util";
 import { util } from "..";
 
-export class Cat extends BaseCommand {
+export class Cat extends Command {
   async run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
     let path = args[0] ? args[0] : ""
     let returnCode = 0;

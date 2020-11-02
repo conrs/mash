@@ -84,6 +84,7 @@ export class BrowserCLIWindow {
           // Hackity hack because html might cause line break that doesnt
           // actually show up, so this keeps cursor in order.
           this.yShouldBeAtBottom = true
+          document.getElementsByTagName("body")[0].scrollTop = document.getElementsByTagName("body")[0].clientHeight * 20
           break;
         case mash.util.Ascii.Codes.UpArrow:
           this.yShouldBeAtBottom = false

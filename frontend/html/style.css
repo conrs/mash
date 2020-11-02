@@ -14,7 +14,8 @@ html {
 
 div#console_output
 {
-  white-space: pre-wrap;
+  white-space: pre;
+  width: 100000%
 }
 
 #cursor {

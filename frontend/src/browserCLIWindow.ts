@@ -69,7 +69,9 @@ export class BrowserCLIWindow {
         this.outputElement.innerHTML = this.buffer
 
       if(this.yShouldBeAtBottom) {
+        this.yShouldBeAtBottom = false
         this.cursorY = this.outputElement.innerText.split("\n").length - 1
+        document.body.scrollTop = Number.MAX_SAFE_INTEGER
       }
 
       this.cursorElement.style.left = (this.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
@@ -107,7 +109,9 @@ export class BrowserCLIWindow {
           if(mash.util.Ascii.isVisibleText(character)) {
             this.buffer += mash.util.Ascii.characterCodesToString([character])
           }
-          document.getElementsByTagName("body")[0].scrollTop = document.getElementsByTagName("body")[0].clientHeight * 20
+          
+          document.body.scrollTop = Number.MAX_SAFE_INTEGER
+
           break;
       }
     })

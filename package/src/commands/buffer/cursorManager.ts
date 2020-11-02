@@ -32,7 +32,7 @@ export class CursorManager {
     }
   }
 
-  clear() {
+  reset() {
     this.nodeToLeft = undefined
     this.point = new Point(0, 0)
     this.ohMagicRightNode = undefined

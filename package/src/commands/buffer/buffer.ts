@@ -51,9 +51,22 @@ export class Buffer extends Command {
         for(let i = 0; i < characterCodes.length; i++) {
           let characterCode = characterCodes[i]
 
-          // StartOfText essentially resets the buffer
-          if(characterCode == Ascii.Codes.StartOfText) {
-            this.cursorManager.clear()
+          if(characterCode == Ascii.Codes.ClearScreen) {
+            // Emit backspaces for every node in our bunch.
+
+            while(this.cursorManager.nodeToLeft) {
+              stdout.write(Ascii.Codes.LeftArrow)
+              this.cursorManager.nodeToLeft = this.cursorManager.nodeToLeft.left
+            }
+
+            while(this.lastNode) {
+              stdout.write(Ascii.Codes.Backspace)
+              this.lastNode = this.lastNode.left
+            }
+
+            this.cursorManager.reset()
+          } else if(characterCode == Ascii.Codes.StartOfText) {
+            this.cursorManager.reset()
             this.lastNode = undefined
             this.stdout.write(Ascii.Codes.StartOfText)
           } else {

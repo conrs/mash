@@ -69,7 +69,7 @@ export class BrowserCLIWindow {
         this.outputElement.innerHTML = this.buffer
 
       if(this.yShouldBeAtBottom) {
-        this.cursorY = this.outputElement.innerHTML.split("\n").length - 1
+        this.cursorY = this.outputElement.innerText.split("\n").length - 1
       }
 
       this.cursorElement.style.left = (this.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()

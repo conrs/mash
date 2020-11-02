@@ -18,6 +18,10 @@ export class BrowserCLIWindow {
 
   private mash: mash.commands.Mash
 
+  // TODO: idk how to handle HTML and line breaks yet so for now
+  // we just do a silly hack where we know if y should be at the bottom or not
+  private yShouldBeAtBottom: boolean = true
+
   private buffer: string = ""
 
   private bufferStdin: mash.util.Stream<number>
@@ -64,6 +68,10 @@ export class BrowserCLIWindow {
       if(this.outputElement.innerHTML != this.buffer)
         this.outputElement.innerHTML = this.buffer
 
+      if(this.yShouldBeAtBottom) {
+        this.cursorY = this.outputElement.innerHTML.split("\n").length - 1
+      }
+
       this.cursorElement.style.left = (this.cursorX * ((Math.round(cursorElement.getBoundingClientRect().width * 10000)*1.11) / 10000)).toString()
       this.cursorElement.style.top = (this.cursorY * cursorElement.getBoundingClientRect().height).toString()
     }, 10)
@@ -75,9 +83,10 @@ export class BrowserCLIWindow {
         case mash.util.Ascii.Codes.StartOfText:
           // Hackity hack because html might cause line break that doesnt
           // actually show up, so this keeps cursor in order.
-          this.cursorY = this.outputElement.innerText.split("\n").length - 1
+          this.yShouldBeAtBottom = true
           break;
         case mash.util.Ascii.Codes.UpArrow:
+          this.yShouldBeAtBottom = false
           this.cursorY = Math.max(0, this.cursorY-1);
           break;
         case mash.util.Ascii.Codes.DownArrow:

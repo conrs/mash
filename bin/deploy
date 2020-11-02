@@ -1,0 +1,4 @@
+set -ex 
+
+git push --delete origin gh-pages || true
+git subtree push --prefix frontend/html origin gh-pages

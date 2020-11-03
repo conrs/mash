@@ -1,5 +1,6 @@
 set -ex
 
+MESSAGE=${1:-Deploy}
 pushd frontend
 yarn docker:build
 popd
@@ -8,5 +9,4 @@ git add .
 git commit -m 'Deploy'
 git push
 
-git push --delete origin gh-pages || true
-git subtree push --prefix frontend/html origin gh-pages
+git push origin `git subtree split --prefix frontend/html master`:gh-pages --force

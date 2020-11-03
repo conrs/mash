@@ -28,12 +28,27 @@ function readyListener(e: Event) {
 
 document.addEventListener('readystatechange', readyListener)
 
+let tStart: number = undefined
+
 document.addEventListener("touchstart", () => {
-    if(document.activeElement == document.getElementById("mobile_tricker"))
-      document.getElementById("mobile_tricker").blur()
-    else
-      document.getElementById("mobile_tricker").focus()
+
+    tStart = new Date().getTime()
+
 }, false);
+
+
+document.addEventListener("touchend", () => {
+    if(tStart && new Date().getTime() - tStart < 200)
+    {
+        if(document.activeElement == document.getElementById("mobile_tricker"))
+            document.getElementById("mobile_tricker").blur()
+        else
+            document.getElementById("mobile_tricker").focus()
+        
+
+        tStart = undefined
+    }
+})
 
 function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {
     let characterStream = new mash.util.Stream<number>()

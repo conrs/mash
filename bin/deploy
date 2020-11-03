@@ -6,7 +6,7 @@ yarn docker:build
 popd
 
 git add .
-git commit -m 'Deploy'
+git commit -m "$MESSAGE"
 git push
 
 git push origin `git subtree split --prefix frontend/html master`:gh-pages --force

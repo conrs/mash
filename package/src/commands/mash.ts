@@ -121,7 +121,7 @@ export class Mash extends Command {
         let stream = new util.Stream<number>()
 
         if(!cmd) {
-          throw new CommandNotFoundError(tokens[0])
+          throw new CommandNotFoundError(tokens.length > 0 ? tokens[0] : "")
         }
 
         return {

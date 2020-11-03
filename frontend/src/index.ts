@@ -28,6 +28,13 @@ function readyListener(e: Event) {
 
 document.addEventListener('readystatechange', readyListener)
 
+document.addEventListener("touchstart", () => {
+    if(document.activeElement == document.getElementById("mobile_tricker"))
+      document.getElementById("mobile_tricker").blur()
+    else
+      document.getElementById("mobile_tricker").focus()
+}, false);
+
 function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {
     let characterStream = new mash.util.Stream<number>()
 
@@ -78,10 +85,7 @@ function makeKeyboardInputStream() {
 
     document.addEventListener('keydown', function(e)
     {
-        if(e.keyCode == 9)
-        {
-            e.preventDefault();
-        }
+        e.preventDefault();
     });
 
     document.addEventListener('keyup', function(e: KeyboardEvent) {

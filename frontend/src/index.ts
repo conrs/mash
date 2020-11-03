@@ -30,24 +30,24 @@ document.addEventListener('readystatechange', readyListener)
 
 let tStart: number = undefined
 
-document.addEventListener("touchstart", () => {
+document.addEventListener("touchstart", (e) => {
 
     tStart = new Date().getTime()
-
 }, false);
 
 
-document.addEventListener("touchend", () => {
+document.addEventListener("touchend", (e) => {
     if(tStart && new Date().getTime() - tStart < 200)
     {
         if(document.activeElement == document.getElementById("mobile_tricker"))
             document.getElementById("mobile_tricker").blur()
         else
             document.getElementById("mobile_tricker").focus()
-        
+
 
         tStart = undefined
     }
+    e.preventDefault()
 })
 
 function makeCharacterStream(keyboardStream: mash.util.Stream<string>) {

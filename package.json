@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "docker:build": "./bin/build.sh",
-    "docker:run": "docker run -it -p 80:80 local-registry/mash",
-    "gh-pages": "echo con.rs > CNAME && gh-pages"
+    "docker:run": "docker run -it -p 80:80 local-registry/mash"
   },
   "repository": {
     "type": "git",

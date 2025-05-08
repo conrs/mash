@@ -200,7 +200,7 @@ export default class Mash extends Command {
 
 class HistoryTracker {
     private history: string[] = []
-    private index: number = 0
+    private index: number = 1
     
     // Up is actually the last line in here, so we read the value then move up if possible. 
     // If there is no up, we need to remember, as the next call to this should fail. 

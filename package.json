@@ -1,0 +1,38 @@
+{
+  "name": "mash",
+  "version": "0.1.0",
+  "description": "Matt's Awesome Shell - a shell-like browser experience and portfolio joke.",
+  "main": "index.js",
+  "scripts": {
+    "docker:build": "./bin/build.sh",
+    "docker:run": "docker run -it -p 80:80 local-registry/mash"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conrs/mash.git"
+  },
+  "author": "Matt Connors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/conrs/mash/issues"
+  },
+  "homepage": "https://github.com/conrs/mash#readme",
+  "dependencies": {
+    "@types/node": "^14.0.23",
+    "browserify": "^16.5.1",
+    "conrs-mash": "^0.1.25",
+    "jekyll-markdown-parser": "^4.0.0",
+    "tsify": "^4.0.2",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.5",
+    "@webpack-cli/serve": "^3.0.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.2",
+    "ts-loader": "^8.0.1",
+    "webpack": "^5.99.6",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
+  }
+}

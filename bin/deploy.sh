@@ -7,6 +7,7 @@ MESSAGE=${1:-Deploy}
 yarn docker:build
 
 git add .
+git add --force public
 git commit -m "$MESSAGE"
 git push
 

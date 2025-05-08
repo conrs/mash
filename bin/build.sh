@@ -2,7 +2,6 @@
 set -e
 set -x 
 
-rm -rf html/js || true; 
+rm -rf public/js || true; 
 tsc
 webpack
-docker build . -t local-registry/mash

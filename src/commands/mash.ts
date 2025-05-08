@@ -12,6 +12,7 @@ import { Filesystem } from "../filesystem/core";
 import { GithubBlogFilesystem } from "../filesystem/githubBlogFs";
 import { sleep } from "../util/sleep";
 import Md2Html from "./md2Html";
+import { Help } from "./help";
 
 export default class Mash extends Command {
     private buffer: MashBuffer = new MashBuffer()
@@ -24,21 +25,16 @@ export default class Mash extends Command {
     
     prompt = () => `${this.promptName}:/${this.filesystem.pwd.join("/")} $ `
 
-    commands: {
-        [index: string]: Command
-    } = {}
     constructor(
     ) {
         super()
 
-        this.commands = {
-            "ls": new Ls(this.filesystem),
-            "cat": new Cat(this.filesystem),
-            "cd": new Cd(this.filesystem),
-            "rotate": new Rotate(),
-            "md2html": new Md2Html()
-        }
-    
+        Help.register(new Ls(this.filesystem))
+        Help.register(new Cat(this.filesystem))
+        Help.register(new Cd(this.filesystem))
+        Help.register(new Rotate())
+        Help.register(new Md2Html())
+        Help.register(new Help())
     }
 
     run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
@@ -153,17 +149,17 @@ export default class Mash extends Command {
           let result = string.split("|").reduce((acc, command) => {
             let tokens = command.split(" ").filter((x) => x != "")
     
-            let cmd = this.commands[tokens[0]]
+            let cmdEither = Help.getCommand(tokens[0])
             let args = tokens.slice(1)
             let stream = new MashStream<number>()
     
-            if(!cmd) {
+            if(Either.isLeft(cmdEither)) {
               throw new CommandNotFoundError(tokens.length > 0 ? tokens[0] : "")
             }
     
             return {
               run: async () => acc.run().then(async ()=> {
-                 await cmd.run(acc.stream, stream, args)
+                 await Either.getValue(cmdEither).run(acc.stream, stream, args)
                  stream.write(Ascii.Codes.EndOfTransmission)
               }),
               stream: stream

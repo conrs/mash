@@ -3,4 +3,4 @@ package-lock.json
 node_modules/
 coverage
 dist
-frontend/html/js
+public/js

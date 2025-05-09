@@ -48,16 +48,16 @@ document.addEventListener("touchstart", (e) => {
 document.addEventListener("touchend", (e) => {
     const bottomOfOutput = document.querySelector("#anchor")!.getBoundingClientRect().y - 20;
     const touchY = e.changedTouches.item(e.changedTouches.length - 1)!.clientY
-    console.log({
-        bottomOfOutput,
-        touchY
-    })
     if(tStart && new Date().getTime() - tStart < 200 && touchY > bottomOfOutput)
     {
-        if(document.activeElement == document.getElementById("mobile_tricker"))
+        alert("gonna do it")
+        if(document.activeElement == document.getElementById("mobile_tricker")) 
             document.getElementById("mobile_tricker")!.blur()
-        else
+        else {
+            alert("focus logic triggered")
             document.getElementById("mobile_tricker")!.focus()
+        }
+            
 
         tStart = undefined
 

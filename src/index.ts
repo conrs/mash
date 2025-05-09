@@ -41,23 +41,24 @@ document.addEventListener('readystatechange', readyListener)
 let tStart: number | undefined = undefined
 
 document.addEventListener("touchstart", (e) => {
-
     tStart = new Date().getTime()
 }, false);
 
 
 document.addEventListener("touchend", (e) => {
-    if(tStart && new Date().getTime() - tStart < 200)
+    const touchY = e.touches.item(e.touches.length - 1)!.pageY
+    if(tStart && new Date().getTime() - tStart < 200 && document.body.scrollHeight - touchY < 20)
     {
         if(document.activeElement == document.getElementById("mobile_tricker"))
             document.getElementById("mobile_tricker")!.blur()
         else
             document.getElementById("mobile_tricker")!.focus()
 
-
         tStart = undefined
+
+        e.preventDefault()
     }
-    e.preventDefault()
+    
 })
 
 

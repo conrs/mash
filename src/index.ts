@@ -46,8 +46,13 @@ document.addEventListener("touchstart", (e) => {
 
 
 document.addEventListener("touchend", (e) => {
-    const touchY = e.touches.item(e.touches.length - 1)!.pageY
-    if(tStart && new Date().getTime() - tStart < 200 && document.body.scrollHeight - touchY < 20)
+    const bottomOfOutput = document.querySelector("#anchor")!.getBoundingClientRect().y - 20;
+    const touchY = e.changedTouches.item(e.changedTouches.length - 1)!.clientY
+    console.log({
+        bottomOfOutput,
+        touchY
+    })
+    if(tStart && new Date().getTime() - tStart < 200 && touchY > bottomOfOutput)
     {
         if(document.activeElement == document.getElementById("mobile_tricker"))
             document.getElementById("mobile_tricker")!.blur()

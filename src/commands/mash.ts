@@ -108,7 +108,22 @@ export default class Mash extends Command {
                                 } else {
                                     console.error("unable to handle tab - silently failing")
                                 }
-                               
+                            case Ascii.Codes.ClearScreen: 
+                                // Do not emit this character, but clear our buffer.
+                                // Clear buffer stdout and emit the backspaces 
+                                bufferStdout.read()
+                                bufferStdin.write(characterCode)
+                                await new Promise<void>((resolve) => {
+                                    setTimeout(() => {
+                                        const responseEither = bufferStdout.read()
+            
+                                        if(Either.isRight(responseEither)) {
+                                            stdout.write(Either.getValue(responseEither))
+                                        }
+
+                                        resolve()
+                                    }, 1)
+                                })
                                 break;
                             default: 
                                 bufferStdin.write(characterCode)

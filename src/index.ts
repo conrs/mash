@@ -26,6 +26,20 @@ function init() {
 
 
     ;(window as any).stdin = characterStream
+
+    document.getElementById("mobile_tricker")?.addEventListener("input", (x) => {
+        console.log(x)
+        if(
+            (x as InputEvent).inputType !== "insertText" && 
+            (x as InputEvent).inputType !== "deleteContentBackward" && 
+            (x as InputEvent).inputType !== "deleteContentForward"
+        ) {
+            console.log("going to clear and enter.")
+            // The user selected an autocomplete item ; clear what we have so far and replace entire value.
+            ;(window as any).stdin.write(Ascii.Codes.ClearScreen)
+            ;(window as any).stdin.write(Ascii.stringToCharacterCodes((x.target as HTMLInputElement).value))
+        }
+    })
 }
 
 function readyListener(e: Event) {
@@ -128,13 +142,27 @@ function makeKeyboardInputStream() {
     {
         if(!e.metaKey) {
             keyboardStream.write(e.key) 
-            //e.preventDefault();
+        }
+
+        switch(e.key) {
+            case "ArrowUp":
+            case "ArrowLeft": 
+            case "ArrowRight": 
+            case "ArrowDown": 
+                e.preventDefault()
+                break;
         }
     });
 
     document.addEventListener('keyup', function(e: KeyboardEvent) {
-        //e.stopPropagation()
-        //e.preventDefault();
+        switch(e.key) {
+            case "ArrowUp":
+            case "ArrowLeft": 
+            case "ArrowRight": 
+            case "ArrowDown": 
+                e.preventDefault()
+                break;
+        }
     });
 
     return keyboardStream

@@ -137,6 +137,7 @@ export default class Mash extends Command {
                 } else {
                     stdout.write(Ascii.Codes.NewLine)
                     this.historyTracker.addLine(commandToExecute)
+                    console.log(`cmd: '${commandToExecute}'`)
 
                     await this.execute(commandToExecute, stdin, stdout)
                 }
@@ -149,9 +150,10 @@ export default class Mash extends Command {
         (document.querySelector("#mobile_tricker") as HTMLInputElement)!.value = ""
         try {
           let result = string.split("|").reduce((acc, command) => {
-            let tokens = command.split(" ").filter((x) => x != "")
+            console.log(`command is ${command}`)
+            let tokens = (command || "").split(" ").filter((x) => x != "")
     
-            let cmdEither = Help.getCommand(tokens[0])
+            let cmdEither = Help.getCommand(tokens[0] || "")
             let args = tokens.slice(1)
             let stream = new MashStream<number>()
     

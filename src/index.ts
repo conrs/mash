@@ -42,6 +42,8 @@ let tStart: number | undefined = undefined
 
 document.addEventListener("touchstart", (e) => {
     tStart = new Date().getTime()
+
+    e.preventDefault()
 }, false);
 
 
@@ -50,11 +52,9 @@ document.addEventListener("touchend", (e) => {
     const touchY = e.changedTouches.item(e.changedTouches.length - 1)!.clientY
     if(tStart && new Date().getTime() - tStart < 200 && touchY > bottomOfOutput)
     {
-        alert("gonna do it")
         if(document.activeElement == document.getElementById("mobile_tricker")) 
             document.getElementById("mobile_tricker")!.blur()
         else {
-            alert("focus logic triggered")
             document.getElementById("mobile_tricker")!.focus()
         }
             

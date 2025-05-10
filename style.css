@@ -15,6 +15,7 @@ body {
   position: relative;
   width: 95%;
   height: 100%;
+  z-index:2;
   background-color:black;
 }
 
@@ -67,7 +68,7 @@ img[alt]:after {
 
 #mobile_tricker {
   position:fixed;
-  z-index:-10;
+  z-index:1;
   bottom:50px;
   outline:none;
   appearance: none;

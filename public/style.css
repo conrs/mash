@@ -68,7 +68,7 @@ img[alt]:after {
 #mobile_tricker {
   position:absolute;
   z-index:-10;
-  top:0
+  bottom:50px;
 }
 
 input::-webkit-calendar-picker-indicator {

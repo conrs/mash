@@ -15,6 +15,7 @@ body {
   position: relative;
   width: 95%;
   height: 100%;
+  background-color:black;
 }
 
 #cursor_text_filler {
@@ -65,9 +66,9 @@ img[alt]:after {
 }
 
 #mobile_tricker {
-  float: right;
-  width: 300px;
-  margin-right: -600px;
+  position:absolute;
+  z-index:-10;
+  top:0
 }
 
 input::-webkit-calendar-picker-indicator {

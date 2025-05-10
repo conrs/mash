@@ -128,13 +128,13 @@ function makeKeyboardInputStream() {
     {
         if(!e.metaKey) {
             keyboardStream.write(e.key) 
-            e.preventDefault();
+            //e.preventDefault();
         }
     });
 
     document.addEventListener('keyup', function(e: KeyboardEvent) {
-        e.stopPropagation()
-        e.preventDefault();
+        //e.stopPropagation()
+        //e.preventDefault();
     });
 
     return keyboardStream

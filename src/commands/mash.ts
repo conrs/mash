@@ -145,6 +145,8 @@ export default class Mash extends Command {
     }
 
     private async execute(string: string, stdin: MashStream<number>, stdout: MashStream<number>) {
+        // Hack to empty the mobile input area (if in action)
+        (document.querySelector("#mobile_tricker") as HTMLInputElement)!.value = ""
         try {
           let result = string.split("|").reduce((acc, command) => {
             let tokens = command.split(" ").filter((x) => x != "")

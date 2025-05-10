@@ -66,10 +66,14 @@ img[alt]:after {
 
 #mobile_tricker {
   color: transparent;
-  text-shadow: none none none red;
   background-color: black;
   border: none;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  caret-color: transparent;
+}
+
+input::-webkit-calendar-picker-indicator {
+  display: none;
 }

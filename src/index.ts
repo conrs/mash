@@ -142,7 +142,14 @@ function makeKeyboardInputStream() {
 
     document.addEventListener('keydown', function(e)
     {
+        console.log(e.key)
+        console.log(e.ctrlKey)
         if(!e.metaKey) {
+            if(e.ctrlKey) {
+                if(e.key === 'd') {
+                    keyboardStream.write(Ascii.characterCodesToString([Ascii.Codes.EndOfTransmission]))
+                }
+            }
             keyboardStream.write(e.key) 
         }
 

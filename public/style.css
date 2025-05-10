@@ -65,13 +65,9 @@ img[alt]:after {
 }
 
 #mobile_tricker {
-  color: transparent;
-  background-color: black;
-  border: none;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-  caret-color: transparent;
+  float: right;
+  width: 300px;
+  margin-right: -600px;
 }
 
 input::-webkit-calendar-picker-indicator {

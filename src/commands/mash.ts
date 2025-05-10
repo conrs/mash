@@ -96,7 +96,7 @@ export default class Mash extends Command {
                                         .pop()!
                                 
                                     const children = await node.children()
-
+                                    
                                     const match = Object.keys(children).find((x: string) => {
                                         return x.indexOf(currentCommand) === 0
                                     })
@@ -108,6 +108,7 @@ export default class Mash extends Command {
                                 } else {
                                     console.error("unable to handle tab - silently failing")
                                 }
+                                break;
                             case Ascii.Codes.ClearScreen: 
                                 // Do not emit this character, but clear our buffer.
                                 // Clear buffer stdout and emit the backspaces 

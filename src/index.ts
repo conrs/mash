@@ -158,6 +158,7 @@ function makeKeyboardInputStream() {
             case "ArrowLeft": 
             case "ArrowRight": 
             case "ArrowDown": 
+            case "Tab":
                 e.preventDefault()
                 break;
         }

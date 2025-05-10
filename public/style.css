@@ -8,15 +8,16 @@ html {
 
 body {
   width: 100%;
-  overflow-x: hidden
+  height:100%;
+  overflow-x: hidden;
 }
 
 #container {
   position: relative;
   width: 95%;
-  height: 150%;
-  z-index:2;
-  background-color:black;
+  height: 100%;
+  z-index: 2;
+  background-color: black;
 }
 
 #cursor_text_filler {
@@ -32,6 +33,7 @@ body {
   background-color: #B4FFAE;
   color: #B4FFAE;
   position: relative;
+  z-index: 6;
   display:inline-block
 }
 
@@ -41,6 +43,7 @@ body {
   top: 0px;
   white-space: pre-wrap;
   z-index: 5; /* ensure text selectable */
+  background-color:black;
 }
 
 a {
@@ -67,8 +70,8 @@ img[alt]:after {
 }
 
 #mobile_tricker {
-  position:fixed;
   z-index:1;
+  position:fixed;
   bottom:50px;
   outline:none;
   appearance: none;

@@ -63,3 +63,9 @@ img[alt]:after {
   text-align: center;
   content: attr(alt);
 }
+
+#mobile_tricker {
+  margin-left:-10000px; 
+  width:100px; 
+  margin-bottom: -80vh
+}

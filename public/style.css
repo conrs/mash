@@ -75,5 +75,5 @@ img[alt]:after {
 }
 
 input::-webkit-calendar-picker-indicator {
-  display: none;
+  display: none !important;
 }

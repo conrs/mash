@@ -101,6 +101,8 @@ function makeCharacterStream(keyboardStream: MashStream<string>) {
                 } else if(keyValue == 'Tab') {
                     char = "\t".charCodeAt(0)
                 } else if(keyValue == 'Enter') {
+                    // Clear mobile input area
+                    (document.querySelector("#mobile_tricker") as HTMLInputElement)!.value = ""
                     char = "\n".charCodeAt(0)
                 } else if(keyValue == "ArrowLeft") {
                     char = Ascii.Codes.LeftArrow

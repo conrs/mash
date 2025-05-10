@@ -65,7 +65,11 @@ img[alt]:after {
 }
 
 #mobile_tricker {
-  color: black;
+  color: transparent;
+  text-shadow: none none none red;
   background-color: black;
   border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
 }

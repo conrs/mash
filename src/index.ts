@@ -47,6 +47,10 @@ function readyListener(e: Event) {
         init();
         ;(window as any).inputCommand = inputCommand
         document.removeEventListener('readystatechange', readyListener)
+
+        setTimeout(() => {
+            window.scrollTo({top:0})
+        }, 50)
     }
 }
 

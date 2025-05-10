@@ -77,11 +77,3 @@ img[alt]:after {
   appearance: none;
   caret-color: transparent;
 }
-
-input::-webkit-calendar-picker-indicator {
-  display: none !important;
-}
-
-input::-webkit-list-button {
-  display: none !important;
-}

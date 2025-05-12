@@ -13,6 +13,7 @@ import { GithubBlogFilesystem } from "../filesystem/githubBlogFs";
 import { sleep } from "../util/sleep";
 import Md2Html from "./md2Html";
 import { Help } from "./help";
+import { Edit } from "./edit";
 
 export default class Mash extends Command {
     private buffer: MashBuffer = new MashBuffer()
@@ -35,6 +36,7 @@ export default class Mash extends Command {
         Help.register(new Rotate())
         Help.register(new Md2Html())
         Help.register(new Help())
+        Help.register(new Edit())
     }
 
     run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {

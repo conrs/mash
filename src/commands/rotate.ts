@@ -18,7 +18,8 @@ export class Rotate extends Command {
       if(!Number.isNaN(passedAmount) && Number.isInteger(passedAmount) && amount > 0 && amount < 26) {
         amount = passedAmount
       } else {
-        stdout.write(Ascii.stringToCharacterCodes(`Invalid rotation value: '${passedAmount}' - must be positive integer no larger than 25`))
+        stdout.write(Ascii.stringToCharacterCodes(`Invalid rotation value: '${args[0]}' - must be positive integer no larger than 25`))
+        return 1
       }
     }
 
@@ -28,6 +29,8 @@ export class Rotate extends Command {
           if(character == Ascii.Codes.EndOfTransmission) {
             throw new HitEOT()
           }
+
+          amount = amount % 26
 
           // we only rotate a-z A-Z
           if(character >= 65 && character <= 90) {

@@ -14,17 +14,17 @@ import { sleep } from "../util/sleep";
 import Md2Html from "./md2Html";
 import { Help } from "./help";
 import { Edit } from "./edit";
+import { Say } from "./say";
 
 export default class Mash extends Command {
     private buffer: MashBuffer = new MashBuffer()
     private historyTracker = new HistoryTracker()
-    private promptName = "mash"
     private filesystem = new GithubBlogFilesystem()
     
     command: string = "mash"
     helpText: string = "command interpreter - you can be a troll and keep nesting these, currently no way to kill"
     
-    prompt = () => `${this.promptName}:/${this.filesystem.pwd.join("/")} $ `
+    prompt = (name: string = "mash") => `${name}:/${this.filesystem.pwd.join("/")} $ `
 
     constructor(
     ) {
@@ -37,11 +37,15 @@ export default class Mash extends Command {
         Help.register(new Md2Html())
         Help.register(new Help())
         Help.register(new Edit())
+        Help.register(new Say())
+        Help.register(this)
     }
 
     run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
+        let promptName = "mash"
+        
         if(args && args.length === 1) {
-            this.promptName = args[1]
+            promptName = args[0]
         }
         const bufferStdin: MashStream<number> = new MashStream<number>()
         const bufferStdout: MashStream<number> = new MashStream<number>()
@@ -53,13 +57,15 @@ export default class Mash extends Command {
                 let commandToExecute: string = ""
 
                 stdout.write(Ascii.Codes.NewLine)
-                stdout.write(Ascii.stringToCharacterCodes(this.prompt()))
+                stdout.write(Ascii.stringToCharacterCodes(this.prompt(promptName)))
 
                 const resultEither = await stdin.consume(async (characterCodes) => {
                     for(let i = 0; i < characterCodes.length; i++) {
                         let characterCode = characterCodes[i]
 
                         switch(characterCode) {
+                            case Ascii.Codes.EndOfTransmission: 
+                                return false;
                             case Ascii.Codes.NewLine:
                                 // Determine if we are in the middle of a line and emit right arrows if so.
                                 // Return false to fall out of consume once a command is written.
@@ -153,11 +159,16 @@ export default class Mash extends Command {
                 if(Either.isLeft(resultEither)) {
                     console.error("mash.ts - Received StreamAlreadyHasListenerError while consuming stream.")
                 } else {
-                    stdout.write(Ascii.Codes.NewLine)
-                    this.historyTracker.addLine(commandToExecute)
-                    console.log(`cmd: '${commandToExecute}'`)
-
-                    await this.execute(commandToExecute, stdin, stdout)
+                    if(commandToExecute != "") {    
+                        stdout.write(Ascii.Codes.NewLine)
+                        this.historyTracker.addLine(commandToExecute)
+    
+                        await this.execute(commandToExecute, stdin, stdout)
+                    } else {
+                        stdout.write(Ascii.stringToCharacterCodes(`\nExiting mash shell '${promptName}'\n`))
+                        resolve(0)
+                        break;
+                    }
                 }
             }
         })
@@ -166,7 +177,6 @@ export default class Mash extends Command {
     private async execute(string: string, stdin: MashStream<number>, stdout: MashStream<number>) {
         try {
           let result = string.split("|").reduce((acc, command) => {
-            console.log(`command is ${command}`)
             let tokens = (command || "").split(" ").filter((x) => x != "")
     
             let cmdEither = Help.getCommand(tokens[0] || "")

@@ -28,13 +28,11 @@ function init() {
     ;(window as any).stdin = characterStream
 
     document.getElementById("mobile_tricker")?.addEventListener("input", (x) => {
-        console.log(x)
         if(
             (x as InputEvent).inputType !== "insertText" && 
             (x as InputEvent).inputType !== "deleteContentBackward" && 
             (x as InputEvent).inputType !== "deleteContentForward"
         ) {
-            console.log("going to clear and enter.")
             // The user selected an autocomplete item ; clear what we have so far and replace entire value.
             ;(window as any).stdin.write(Ascii.Codes.ClearScreen)
             ;(window as any).stdin.write(Ascii.stringToCharacterCodes((x.target as HTMLInputElement).value))
@@ -146,8 +144,6 @@ function makeKeyboardInputStream() {
 
     document.addEventListener('keydown', function(e)
     {
-        console.log(e.key)
-        console.log(e.ctrlKey)
         if(!e.metaKey) {
             if(e.ctrlKey) {
                 if(e.key === 'd') {

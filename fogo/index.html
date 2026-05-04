@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fogo de Chão — Passenger Safety Briefing</title>
+<script type='text/javascript' src='https://www.midijs.net/lib/midi.js'></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: manipulation; }
+  #controls { position: fixed; bottom: 80px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 10; }
+  #controls button { padding: 10px 18px; font-size: 14px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; -webkit-tap-highlight-color: transparent; min-height: 44px; min-width: 44px; }
+  #startBtn { background: #2a9d8f; color: #fff; font-size: 16px; padding: 14px 28px; }
+  #startBtn:hover { background: #238b7e; }
+  #prevBtn, #nextBtn { background: #264653; color: #e9c46a; }
+  #prevBtn:hover, #nextBtn:hover { background: #1d3642; }
+  #musicBtn { background: #e76f51; color: #fff; min-width: 80px; }
+  #sceneLabel { color: #e9c46a; font-size: 12px; position: fixed; bottom: max(56px, calc(env(safe-area-inset-bottom) + 44px)); letter-spacing: 2px; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="sceneLabel"></div>
+<div id="controls">
+  <button id="startBtn" onclick="startBriefing()">▶ BEGIN SAFETY BRIEFING</button>
+  <button id="prevBtn" onclick="prevScene()" style="display:none">◀ PREV</button>
+  <button id="nextBtn" onclick="nextScene()" style="display:none">NEXT ▶</button>
+  <!-- <button id="musicBtn" onclick="toggleMusic()" style="display:none">🔊 MUSIC</button> -->
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, S;
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight - 70;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  S = Math.min(W / 900, H / 620);
+}
+resize();
+window.addEventListener('resize', resize);
+
+let scene = -1;
+let started = false;
+let musicPlaying = false;
+let animFrame = 0;
+let sceneStart = 0;
+
+const images = {};
+const imgSrcs = {
+  picanha: 'https://con.rs/fogo/picanha.jpeg',
+  lambchop: 'https://con.rs/fogo/lamb-chops.jpg',
+  lambsteak: 'https://con.rs/fogo/lamb-steak.webp',
+  cheese: 'https://con.rs/fogo/cheese.jpg'
+};
+const imgLoaded = {};
+for (const [k, src] of Object.entries(imgSrcs)) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { imgLoaded[k] = true; };
+  img.onerror = () => { imgLoaded[k] = false; };
+  img.src = src;
+  images[k] = img;
+}
+
+const CREAM = '#fdf6e3';
+const TEAL = '#2a9d8f';
+const DARK_TEAL = '#264653';
+const RED = '#e76f51';
+const GOLD = '#e9c46a';
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playChime(type) {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  if (type === 'ding-dong') {
+    [880, 660].forEach((f, i) => {
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.15, now + i * 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.4 + 0.8);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.4); osc.stop(now + i * 0.4 + 0.8);
+    });
+  } else if (type === 'warning') {
+    [520, 520, 680].forEach((f, i) => {
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'square'; osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.08, now + i * 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.25 + 0.3);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.25); osc.stop(now + i * 0.25 + 0.3);
+    });
+  } else if (type === 'triple') {
+    [660, 784, 988].forEach((f, i) => {
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.12, now + i * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.3 + 0.6);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.3); osc.stop(now + i * 0.3 + 0.6);
+    });
+  } else if (type === 'low') {
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'sine'; osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 1.0);
+  }
+}
+
+const MIDI_URL = 'https://bitmidi.com/uploads/22171.mid';
+function toggleMusic() {
+  const btn = document.getElementById('musicBtn');
+  if (musicPlaying) { MIDIjs.stop(); musicPlaying = false; btn.textContent = '🔇 MUSIC'; }
+  else { MIDIjs.play(MIDI_URL); musicPlaying = true; btn.textContent = '🔊 MUSIC'; }
+}
+
+function s(v) { return v * S; }
+function font(weight, size, family) {
+  family = family || 'Helvetica Neue, Arial, sans-serif';
+  const mobile = W < 500;
+  const boost = mobile ? 1.25 : 1;
+  return `${weight} ${s(size * boost)}px ${family}`;
+}
+
+function wrapText(text, x, y, maxWidth, lineHeight, options = {}) {
+  const { align = 'left', fontStr, color = DARK_TEAL } = options;
+  ctx.font = fontStr || font('normal', 15);
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  const words = text.split(' ');
+  let line = '';
+  let cy = y;
+  const mobile = W < 500;
+  const lhBoost = mobile ? 1.3 : 1;
+  const lh = s(lineHeight * lhBoost);
+  const mw = s(maxWidth);
+  for (const word of words) {
+    const test = line + word + ' ';
+    if (ctx.measureText(test).width > mw && line !== '') {
+      ctx.fillText(line.trim(), x, cy);
+      line = word + ' ';
+      cy += lh;
+    } else { line = test; }
+  }
+  ctx.fillText(line.trim(), x, cy);
+  return cy + lh;
+}
+
+const scenes = [
+  { title: 'WELCOME ABOARD', chime: 'ding-dong' },
+  { title: 'THE CARD SYSTEM', chime: 'low' },
+  { title: '⚠ THE SALAD BAR', chime: 'warning' },
+  { title: 'PREMIUM CUTS', chime: 'triple' },
+  { title: 'PACING STRATEGY', chime: 'low' },
+  { title: 'FINAL ADVISORY', chime: 'triple' }
+];
+
+function drawBackground() {
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, 0, W, H);
+  const headerH = s(50);
+  ctx.fillStyle = DARK_TEAL;
+  ctx.fillRect(0, 0, W, headerH);
+  ctx.fillStyle = GOLD;
+  ctx.font = font('bold', 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('FOGO DE CHÃO — SAFETY BRIEFING', s(15), headerH * 0.65);
+  if (scene >= 0) {
+    ctx.textAlign = 'right';
+    ctx.font = font('normal', 10);
+    ctx.fillText(`SCENE ${scene + 1} / ${scenes.length}`, W - s(15), headerH * 0.65);
+  }
+  const footerH = s(24);
+  ctx.fillStyle = DARK_TEAL;
+  ctx.fillRect(0, H - footerH, W, footerH);
+  ctx.fillStyle = GOLD;
+  ctx.font = font('normal', 8);
+  ctx.textAlign = 'center';
+  ctx.fillText('FOR YOUR SAFETY AND COMFORT • PLEASE REVIEW BEFORE DINING', W / 2, H - footerH * 0.3);
+}
+
+/* ============ SCENE 0: WELCOME / BOARDING PASS ============ */
+function drawScene0(t) {
+  drawBackground();
+  const mobile = W < 500;
+  const slideIn = Math.min(1, t / 0.8);
+  const offX = (1 - slideIn) * s(300);
+  ctx.save();
+  ctx.translate(offX, 0);
+
+  const bw = mobile ? W * 0.92 : s(600);
+  const bh = mobile ? H * 0.38 : s(230);
+  const bx = W / 2 - bw / 2;
+  const by = s(65);
+
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 20;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, s(10)); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  const leftW = bw * 0.72;
+  ctx.fillStyle = TEAL;
+  ctx.beginPath(); ctx.roundRect(bx, by, leftW, bh, [s(10), 0, 0, s(10)]); ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = font('bold', 9); ctx.textAlign = 'left';
+  ctx.fillText('BOARDING PASS', bx + s(14), by + s(20));
+  ctx.font = font('bold', mobile ? 22 : 28);
+  ctx.fillText('FOGO DE CHÃO', bx + s(14), by + bh * 0.28);
+  ctx.font = font('normal', 11);
+  ctx.fillText('BRAZILIAN STEAKHOUSE', bx + s(14), by + bh * 0.36);
+
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.moveTo(bx + s(14), by + bh * 0.42); ctx.lineTo(bx + leftW - s(14), by + bh * 0.42); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const col1x = bx + s(14), col2x = bx + leftW * 0.55;
+  const row1y = by + bh * 0.52, row2y = by + bh * 0.72;
+  ctx.font = font('bold', 9);
+  ctx.fillText('PASSENGER', col1x, row1y);
+  ctx.font = font('normal', 14);
+  ctx.fillText('YOU', col1x, row1y + s(16));
+  ctx.font = font('bold', 9);
+  ctx.fillText('CLASS', col1x, row2y);
+  ctx.font = font('normal', 14);
+  ctx.fillText('CHURRASCO', col1x, row2y + s(16));
+  ctx.font = font('bold', 9);
+  ctx.fillText('GATE', col2x, row1y);
+  ctx.font = font('normal', 14);
+  ctx.fillText('ALL', col2x, row1y + s(16));
+  ctx.font = font('bold', 9);
+  ctx.fillText('STATUS', col2x, row2y);
+  ctx.font = font('normal', 14);
+  ctx.fillText('HUNGRY', col2x, row2y + s(16));
+
+  /* Right stub — barcode only */
+  ctx.fillStyle = DARK_TEAL;
+  ctx.beginPath(); ctx.roundRect(bx + leftW, by, bw - leftW, bh, [0, s(10), s(10), 0]); ctx.fill();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.beginPath(); ctx.moveTo(bx + leftW, by + s(8)); ctx.lineTo(bx + leftW, by + bh - s(8)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = GOLD;
+  ctx.font = font('bold', 9); ctx.textAlign = 'center';
+  ctx.fillText('BOARDING', bx + leftW + (bw - leftW) / 2, by + s(20));
+  ctx.fillText('PASS', bx + leftW + (bw - leftW) / 2, by + s(32));
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  const stubCx = bx + leftW + (bw - leftW) / 2;
+  // for (let i = 0; i < 16; i++) {
+  //   const bw2 = s(2 + Math.random() * 3);
+  //   ctx.fillRect(stubCx - s(25) + i * s(3.2), by + bh * 0.3, bw2, bh * 0.5);
+  // }
+  ctx.restore();
+
+  /* Narration */
+  const alpha = Math.min(1, Math.max(0, (t - 0.5) / 0.5));
+  ctx.globalAlpha = alpha;
+  const narY = by + bh + s(25);
+  wrapText('"Welcome aboard Fogo de Chão. Please review this safety briefing before your dining experience begins. Your server will demonstrate the use of your red and green card shortly."',
+    W / 2, narY, (W - s(40)) / S, 22, { align: 'center', fontStr: font('italic', 14, 'Georgia, serif'), color: DARK_TEAL });
+  ctx.globalAlpha = 1;
+}
+
+/* ============ SCENE 1: CARD SYSTEM ============ */
+function drawScene1(t) {
+  drawBackground();
+  const mobile = W < 500;
+  const flipSpeed = 2.5;
+  const angle = t * flipSpeed;
+  const scaleX = Math.cos(angle);
+  const isGreen = scaleX > 0;
+
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 18); ctx.textAlign = 'center';
+  ctx.fillText('THE TWO-SIDED SIGNALING DEVICE', W / 2, s(82));
+
+  const cy = mobile ? H * 0.38 : s(220);
+  const cardW = mobile ? s(140) : s(120);
+  const cardH = mobile ? s(200) : s(170);
+
+  ctx.save();
+  ctx.translate(W / 2, cy);
+  ctx.scale(Math.abs(scaleX), 1);
+  ctx.fillStyle = isGreen ? '#27ae60' : RED;
+  ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 15;
+  ctx.beginPath(); ctx.roundRect(-cardW / 2, -cardH / 2, cardW, cardH, s(10)); ctx.fill();
+  ctx.shadowBlur = 0;
+  if (Math.abs(scaleX) > 0.3) {
+    ctx.fillStyle = '#fff';
+    ctx.font = font('bold', 28); ctx.textAlign = 'center';
+    ctx.fillText(isGreen ? 'GO' : 'STOP', 0, -s(16));
+    ctx.font = font('normal', 14);
+    ctx.fillText(isGreen ? '🟢 SERVE ME' : '🔴 PAUSE', 0, s(14));
+  }
+  ctx.restore();
+
+  ctx.fillStyle = TEAL;
+  ctx.font = font('normal', 13);
+  ctx.textAlign = 'right';
+  ctx.fillText('GREEN = READY ←', W / 2 - cardW * 0.7, cy);
+  ctx.textAlign = 'left';
+  ctx.fillText('→ RED = PAUSE', W / 2 + cardW * 0.7, cy);
+
+  const narY = cy + cardH / 2 + s(30);
+  wrapText('"Your seat is equipped with a two-sided signaling device. GREEN indicates you are ready to receive meat. RED indicates you need a moment. Familiarize yourself with this device now. You will need it."',
+    W / 2, narY, (W - s(40)) / S, 22, { align: 'center', fontStr: font('italic', 14, 'Georgia, serif'), color: DARK_TEAL });
+}
+
+/* ============ SCENE 2: SALAD BAR WARNING ============ */
+function drawScene2(t) {
+  drawBackground();
+  const mobile = W < 500;
+
+  /* Flashing red border */
+  const flash = Math.sin(t * 6) > 0;
+  if (flash) {
+    ctx.strokeStyle = RED; ctx.lineWidth = s(6);
+    ctx.strokeRect(s(8), s(54), W - s(16), H - s(82));
+    ctx.lineWidth = 1;
+  }
+
+  /* Pulsing warning triangle */
+  const triCx = W / 2, triCy = mobile ? s(110) : s(120);
+  const pulse = 1 + Math.sin(t * 5) * 0.08;
+  ctx.save();
+  ctx.translate(triCx, triCy);
+  ctx.scale(pulse, pulse);
+  const triSize = s(45);
+  ctx.fillStyle = (Math.sin(t * 4) > 0) ? '#f4d03f' : '#e67e22';
+  ctx.beginPath();
+  ctx.moveTo(0, -triSize);
+  ctx.lineTo(triSize * 0.9, triSize * 0.65);
+  ctx.lineTo(-triSize * 0.9, triSize * 0.65);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = DARK_TEAL; ctx.lineWidth = s(3); ctx.stroke(); ctx.lineWidth = 1;
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 28); ctx.textAlign = 'center';
+  ctx.fillText('!', 0, triSize * 0.48);
+  ctx.restore();
+
+  /* Title */
+  const titleY = triCy + triSize + s(22);
+  ctx.fillStyle = RED;
+  ctx.font = font('bold', 20); ctx.textAlign = 'center';
+  ctx.fillText('⚠ THE SALAD BAR IS A TRAP ⚠', W / 2, titleY);
+
+  /* Approved items */
+  const approvedY = titleY + s(30);
+  ctx.fillStyle = TEAL;
+  ctx.font = font('bold', 13);
+  ctx.fillText('APPROVED HIGH-FIBER ITEMS ONLY:', W / 2, approvedY);
+  ctx.font = font('normal', 12);
+  ctx.fillStyle = '#27ae60';
+  ctx.fillText('✅ Broccoli     ✅ Asparagus     ✅ Structural Support Only', W / 2, approvedY + s(22));
+
+  /* Narration */
+  const narY = approvedY + s(50);
+  wrapText('"The Market Table may appear to be your primary destination. This is a common passenger error. The salad bar is a trap. Repeat: the salad bar is a trap. While the lobster bisque and imported cheeses may tempt you, excessive consumption will severely limit your capacity for the main event. If you must visit, select high-fiber items only — broccoli, asparagus — for structural support. Do not fill up. This is not a drill."',
+    W / 2, narY, (W - s(40)) / S, 21, { align: 'center', fontStr: font('italic', 13, 'Georgia, serif'), color: DARK_TEAL });
+}
+
+/* ============ SCENE 3: PREMIUM CUTS ============ */
+function drawScene3(t) {
+  drawBackground();
+  const mobile = W < 500;
+
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 17); ctx.textAlign = 'center';
+  ctx.fillText('IDENTIFY THE FOLLOWING PREMIUM ITEMS', W / 2, s(78));
+
+  const cuts = [
+    { key: 'picanha', label: 'PICANHA', sub: 'Top Sirloin Cap', desc: 'The crown jewel. Seared fat cap, sliced thin. Accept every pass.' },
+    { key: 'lambchop', label: 'LAMB CHOPS', sub: 'Bone-In', desc: 'Arrive infrequently. When offered, do not hesitate.' },
+    { key: 'lambsteak', label: 'LAMB STEAK', sub: 'Medium Rare', desc: 'Rich, tender, overlooked by inexperienced passengers.' },
+    { key: 'cheese', label: 'QUEIJO COALHO', sub: 'With Honey', desc: 'Not dessert. A palate reset device for the second wave.' }
+  ];
+
+  const cols = mobile ? 2 : 4;
+  const gap = s(10);
+  const pw = mobile ? (W - gap * 3) / 2 : Math.min(s(185), (W - gap * 5) / 4);
+  const ph = mobile ? H * 0.38 : s(380);
+  const totalW = cols * pw + (cols - 1) * gap;
+  const startX = (W - totalW) / 2;
+  const startY = s(92);
+
+  cuts.forEach((cut, i) => {
+    /* Images start fully hidden, fade in */
+    const fadeIn = Math.min(1, Math.max(0, (t - 0.3 - i * 0.2) / 0.6));
+    ctx.globalAlpha = fadeIn;
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = startX + col * (pw + gap);
+    const y = startY + row * (ph + gap);
+
+    /* Card bg */
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,0.1)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.roundRect(x, y, pw, ph, s(8)); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = TEAL; ctx.lineWidth = s(2);
+    ctx.beginPath(); ctx.roundRect(x, y, pw, ph, s(8)); ctx.stroke();
+    ctx.lineWidth = 1;
+
+    /* Panel label */
+    ctx.fillStyle = TEAL;
+    ctx.font = font('bold', 10); ctx.textAlign = 'center';
+    ctx.fillText(`PANEL ${'ABCD'[i]}`, x + pw / 2, y + s(16));
+
+    /* Image */
+    const imgPad = s(6);
+    const imgW = pw - imgPad * 2;
+    const imgH = mobile ? ph * 0.42 : s(130);
+    const imgY = y + s(24);
+
+    if (imgLoaded[cut.key]) {
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(x + imgPad, imgY, imgW, imgH, s(6)); ctx.clip();
+      const img = images[cut.key];
+      const sc = Math.max(imgW / img.width, imgH / img.height);
+      const dx = (imgW - img.width * sc) / 2;
+      const dy = (imgH - img.height * sc) / 2;
+      ctx.drawImage(img, x + imgPad + dx, imgY + dy, img.width * sc, img.height * sc);
+      ctx.restore();
+      ctx.strokeStyle = TEAL; ctx.lineWidth = s(1.5);
+      ctx.beginPath(); ctx.roundRect(x + imgPad, imgY, imgW, imgH, s(6)); ctx.stroke();
+      ctx.lineWidth = 1;
+    } else {
+      ctx.fillStyle = '#ddd';
+      ctx.beginPath(); ctx.roundRect(x + imgPad, imgY, imgW, imgH, s(6)); ctx.fill();
+      ctx.fillStyle = '#999'; ctx.font = font('normal', 9); ctx.fillText('[Loading...]', x + pw / 2, imgY + imgH / 2 + s(4));
+    }
+
+    /* Text below image */
+    const textTop = imgY + imgH + s(14);
+    ctx.fillStyle = DARK_TEAL;
+    ctx.font = font('bold', mobile ? 12 : 13); ctx.textAlign = 'center';
+    ctx.fillText(cut.label, x + pw / 2, textTop);
+    ctx.fillStyle = TEAL;
+    ctx.font = font('normal', mobile ? 10 : 10);
+    ctx.fillText(cut.sub, x + pw / 2, textTop + s(14));
+    ctx.textAlign = 'left';
+    wrapText(cut.desc, x + s(6), textTop + s(28), (pw - s(12)) / S, mobile ? 16 : 16, { fontStr: font('italic', mobile ? 10 : 11, 'Georgia, serif'), color: DARK_TEAL });
+    ctx.globalAlpha = 1;
+  });
+}
+
+/* ============ SCENE 4: PACING STRATEGY — LINE CHART ============ */
+function drawScene4(t) {
+  drawBackground();
+  const mobile = W < 500;
+
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 18); ctx.textAlign = 'center';
+  ctx.fillText('PACING STRATEGY — CAPACITY OVER TIME', W / 2, s(80));
+
+  /* Chart area */
+  const chartL = mobile ? s(50) : s(80);
+  const chartR = W - (mobile ? s(20) : s(40));
+  const chartT = s(100);
+  const chartB = mobile ? H * 0.58 : s(360);
+  const chartW = chartR - chartL;
+  const chartH = chartB - chartT;
+
+  /* Axes */
+  ctx.strokeStyle = DARK_TEAL;
+  ctx.lineWidth = s(2);
+  ctx.beginPath();
+  ctx.moveTo(chartL, chartT);
+  ctx.lineTo(chartL, chartB);
+  ctx.lineTo(chartR, chartB);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  /* Y-axis label */
+  ctx.save();
+  ctx.translate(chartL - s(28), chartT + chartH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 10); ctx.textAlign = 'center';
+  ctx.fillText('STOMACH CAPACITY', 0, 0);
+  ctx.restore();
+
+  /* X-axis label */
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 10); ctx.textAlign = 'center';
+  ctx.fillText('TIME →', chartL + chartW / 2, chartB + s(20));
+
+  /* Y-axis markers */
+  ctx.font = font('normal', 8); ctx.textAlign = 'right';
+  ['100%', '75%', '50%', '25%', '0%'].forEach((lbl, i) => {
+    const yy = chartT + (chartH * i / 4);
+    ctx.fillStyle = '#999';
+    ctx.fillText(lbl, chartL - s(6), yy + s(3));
+    ctx.strokeStyle = '#e0e0e0'; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(chartL + 1, yy); ctx.lineTo(chartR, yy); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  /* Capacity data points (x fraction, y capacity 0-1) */
+  const dataPoints = [
+    { x: 0.00, y: 1.0,  label: 'Arrival' },
+    { x: 0.12, y: 0.70, label: 'Salad Bar\nMistake' },
+    { x: 0.28, y: 0.55, label: 'First Wave\nStarts' },
+    { x: 0.45, y: 0.25, label: 'First Wave\nEnds' },
+    { x: 0.52, y: 0.22, label: '🔴 RED Card' },
+    { x: 0.65, y: 0.40, label: 'Recovery\n(Rest)' },
+    { x: 0.75, y: 0.38, label: 'Second Wave\nStarts' },
+    { x: 0.90, y: 0.08, label: 'Maximum\nCapacity' },
+    { x: 1.00, y: 0.05, label: '' }
+  ];
+
+  /* Animate line drawing */
+  const drawPct = Math.min(1, t / 3.0);
+  const totalPts = dataPoints.length;
+  const ptsToShow = Math.max(2, Math.ceil(totalPts * drawPct));
+
+  /* Draw filled area under curve */
+  ctx.beginPath();
+  ctx.moveTo(chartL + dataPoints[0].x * chartW, chartB - dataPoints[0].y * chartH);
+  for (let i = 1; i < ptsToShow; i++) {
+    const px = chartL + dataPoints[i].x * chartW;
+    const py = chartB - dataPoints[i].y * chartH;
+    ctx.lineTo(px, py);
+  }
+  ctx.lineTo(chartL + dataPoints[ptsToShow - 1].x * chartW, chartB);
+  ctx.lineTo(chartL, chartB);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(42, 157, 143, 0.15)';
+  ctx.fill();
+
+  /* Draw line */
+  ctx.beginPath();
+  ctx.moveTo(chartL + dataPoints[0].x * chartW, chartB - dataPoints[0].y * chartH);
+  for (let i = 1; i < ptsToShow; i++) {
+    const px = chartL + dataPoints[i].x * chartW;
+    const py = chartB - dataPoints[i].y * chartH;
+    ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = TEAL;
+  ctx.lineWidth = s(3);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  /* Draw points and labels */
+  for (let i = 0; i < ptsToShow; i++) {
+    const dp = dataPoints[i];
+    if (!dp.label) continue;
+    const px = chartL + dp.x * chartW;
+    const py = chartB - dp.y * chartH;
+
+    /* Dot */
+    ctx.fillStyle = (dp.label.includes('Mistake') || dp.label.includes('Maximum')) ? RED : TEAL;
+    ctx.beginPath(); ctx.arc(px, py, s(5), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(px, py, s(2.5), 0, Math.PI * 2); ctx.fill();
+
+    /* Label */
+    const isBelow = dp.y > 0.5;
+    const lblColor = (dp.label.includes('Mistake') || dp.label.includes('Maximum') || dp.label.includes('RED')) ? RED : DARK_TEAL;
+    ctx.fillStyle = lblColor;
+    ctx.font = font('bold', mobile ? 7 : 8);
+    ctx.textAlign = 'center';
+    const lines = dp.label.split('\n');
+    lines.forEach((ln, li) => {
+      const ly = isBelow ? py + s(14) + li * s(11) : py - s(10) - (lines.length - 1 - li) * s(11);
+      ctx.fillText(ln, px, ly);
+    });
+  }
+
+  /* Danger zone line */
+  const dangerY = chartB - 0.15 * chartH;
+  ctx.strokeStyle = RED; ctx.setLineDash([6, 4]); ctx.lineWidth = s(1.5);
+  ctx.beginPath(); ctx.moveTo(chartL, dangerY); ctx.lineTo(chartR, dangerY); ctx.stroke();
+  ctx.setLineDash([]); ctx.lineWidth = 1;
+  ctx.fillStyle = RED;
+  ctx.font = font('bold', 9); ctx.textAlign = 'left';
+  ctx.fillText('⚠ DANGER ZONE', chartL + s(4), dangerY - s(4));
+
+  /* Narration below chart */
+  const narY = chartB + s(34);
+  wrapText('"Pace yourself. Experienced diners deploy the RED card strategically between waves. This is not weakness. This is tactics."',
+    W / 2, narY, (W - s(40)) / S, 22, { align: 'center', fontStr: font('italic', 14, 'Georgia, serif'), color: DARK_TEAL });
+}
+
+/* ============ SCENE 5: FINAL ADVISORY ============ */
+function drawScene5(t) {
+  drawBackground();
+  const mobile = W < 500;
+
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 18); ctx.textAlign = 'center';
+  ctx.fillText('FINAL ADVISORY', W / 2, s(82));
+
+  /* Belt buckle animation */
+  const beltY = mobile ? s(130) : s(160);
+  const swing = Math.sin(t * 2) * 12;
+  ctx.fillStyle = '#5d4037';
+  ctx.beginPath(); ctx.roundRect(W / 2 - s(130), beltY - s(12), s(260), s(24), s(6)); ctx.fill();
+  ctx.save();
+  ctx.translate(W / 2, beltY);
+  ctx.rotate(swing * Math.PI / 180);
+  ctx.fillStyle = '#c0a060';
+  ctx.beginPath(); ctx.roundRect(-s(20), -s(16), s(40), s(32), s(4)); ctx.fill();
+  ctx.strokeStyle = '#8d6e30'; ctx.lineWidth = s(2);
+  ctx.beginPath(); ctx.roundRect(-s(20), -s(16), s(40), s(32), s(4)); ctx.stroke(); ctx.lineWidth = 1;
+  ctx.fillStyle = '#5d4037';
+  ctx.beginPath(); ctx.arc(0, 0, s(4), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = TEAL;
+  ctx.font = font('normal', 11); ctx.textAlign = 'center';
+  ctx.fillText('← LOOSENED FOR YOUR COMFORT →', W / 2, beltY + s(34));
+
+  /* Checklist */
+  const clY = beltY + s(56);
+  ctx.fillStyle = DARK_TEAL;
+  ctx.font = font('bold', 15); ctx.textAlign = 'center';
+  ctx.fillText('PRE-DEPARTURE CHECKLIST', W / 2, clY);
+
+  const checks = [
+    '✅ Appetite preserved (salad bar avoided or minimized)',
+    '✅ RED/GREEN card operation understood',
+    '✅ Premium cuts identified (Picanha, Lamb, Queijo)',
+    '✅ Pacing strategy reviewed — RED card breaks are tactical',
+    '✅ Belt pre-loosened for optimal comfort'
+  ];
+  ctx.textAlign = 'left';
+  const checkX = Math.max(s(20), W / 2 - s(280));
+  const checkSpacing = mobile ? s(28) : s(26);
+  checks.forEach((c, i) => {
+    const fadeIn = Math.min(1, Math.max(0, (t - 0.5 - i * 0.3) / 0.4));
+    ctx.globalAlpha = fadeIn;
+    ctx.fillStyle = DARK_TEAL;
+    ctx.font = font('normal', 13);
+    ctx.fillText(c, checkX, clY + s(22) + i * checkSpacing);
+  });
+  ctx.globalAlpha = 1;
+
+  /* Final quote */
+  const fa = Math.min(1, Math.max(0, (t - 2.5) / 0.5));
+  ctx.globalAlpha = fa;
+  ctx.textAlign = 'center';
+  const narY = clY + s(22) + checks.length * checkSpacing + s(20);
+  wrapText('"On behalf of the entire Fogo de Chão crew, we wish you a comfortable and meaty journey. Please loosen your belt, and enjoy the experience."',
+    W / 2, narY, (W - s(30)) / S, 22, { align: 'center', fontStr: font('italic', 14, 'Georgia, serif'), color: DARK_TEAL });
+  ctx.globalAlpha = 1;
+}
+
+/* ============ TITLE SCREEN ============ */
+function drawTitle() {
+  ctx.fillStyle = DARK_TEAL;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = GOLD;
+  ctx.font = font('bold', 34); ctx.textAlign = 'center';
+  ctx.fillText('FOGO DE CHÃO', W / 2, H * 0.32);
+  ctx.font = font('normal', 18);
+  ctx.fillStyle = CREAM;
+  ctx.fillText('PASSENGER SAFETY BRIEFING', W / 2, H * 0.39);
+  ctx.fillStyle = TEAL;
+  ctx.fillRect(W / 2 - s(100), H * 0.42, s(200), 2);
+  ctx.font = font('italic', 14, 'Georgia, serif');
+  ctx.fillStyle = CREAM;
+  ctx.fillText('"Your guide to a safe and meaty journey"', W / 2, H * 0.48);
+  const dots = Math.floor((Date.now() / 500) % 4);
+  ctx.font = font('normal', 14);
+  ctx.fillStyle = GOLD;
+  ctx.fillText('Press BEGIN to start' + '.'.repeat(dots), W / 2, H * 0.65);
+}
+
+const drawFns = [drawScene0, drawScene1, drawScene2, drawScene3, drawScene4, drawScene5];
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  const t = (Date.now() - sceneStart) / 1000;
+  if (scene === -1) drawTitle();
+  else if (scene >= 0 && scene < drawFns.length) drawFns[scene](t);
+  animFrame = requestAnimationFrame(render);
+}
+
+function startBriefing() {
+  ensureAudio();
+  started = true;
+  scene = 0;
+  sceneStart = Date.now();
+  playChime('ding-dong');
+  try { MIDIjs.play(MIDI_URL); musicPlaying = true; } catch(e) {}
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('prevBtn').style.display = '';
+  document.getElementById('nextBtn').style.display = '';
+  document.getElementById('musicBtn').style.display = '';
+  document.getElementById('musicBtn').textContent = '🔊 MUSIC';
+  updateLabel();
+}
+
+function nextScene() {
+  if (scene < scenes.length - 1) { scene++; sceneStart = Date.now(); playChime(scenes[scene].chime); updateLabel(); }
+}
+function prevScene() {
+  if (scene > 0) { scene--; sceneStart = Date.now(); playChime(scenes[scene].chime); updateLabel(); }
+}
+function updateLabel() {
+  document.getElementById('sceneLabel').textContent = scenes[scene] ? scenes[scene].title : '';
+}
+
+document.addEventListener('keydown', e => {
+  if (!started) { if (e.code === 'Space' || e.code === 'Enter') startBriefing(); return; }
+  if (e.code === 'ArrowRight' || e.code === 'Space') nextScene();
+  if (e.code === 'ArrowLeft') prevScene();
+  if (e.code === 'KeyM') toggleMusic();
+});
+
+let touchStartX = 0;
+canvas.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+canvas.addEventListener('touchend', e => {
+  if (!started) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 40) { dx < 0 ? nextScene() : prevScene(); }
+}, { passive: true });
+
+render();
+</script>
+</body>
+</html>

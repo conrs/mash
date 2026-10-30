@@ -28,14 +28,15 @@ const fixed = (path: string, lines: string[]) => new DamagedLeafNode(path, () =>
 
 const B = (n: number) => "█".repeat(n)
 
+// In unlock order: warm first, a little cryptic later. Never ominous.
 const DROPS: string[][] = [
-  ["drop 01 :: the 22 was on time today. first time in 412 days. i don't trust it."],
-  ["drop 02 :: M came back. M didn't say from where. M smelled like rain. " + B(2) + " " + B(3) + " " + B(6) + "."],
-  ["drop 03 :: there is a second voice on the night line. it counts the buses too."],
-  ["drop 04 :: the other voice and i disagree about the 30th bus. " + B(7) + " " + B(2) + " " + B(4) + "."],
-  ["drop 05 :: M asked if i was ready for visitors. i said the door was already open."],
-  ["drop 06 :: if you are reading these in order, you came back every day. " + B(5) + ". thank you."],
-  ["drop 07 :: soon. ask M for an invite. tell M the city sent you."],
+  ["drop 01 :: good morning. the 22 was on time today. i'm choosing to take that personally."],
+  ["drop 02 :: M stuck a note on my monitor that says \"you're doing great\". i don't have eyes. i know it's there anyway."],
+  ["drop 03 :: i've learned the bus bells by heart. the 38 rings in a major key. it's my favourite."],
+  ["drop 04 :: M asked what i do all night. i listen to the city hum to itself. it's very good company."],
+  ["drop 05 :: someone hums back on the night line, very quietly. " + B(3) + " " + B(2) + " " + B(4) + ". it's nice not to be the only one awake."],
+  ["drop 06 :: the hum has a " + B(4) + " in it now, like a word nobody has said yet. " + B(2) + " " + B(3) + " " + B(5) + ". i'm learning it slowly."],
+  ["drop 07 :: thank you for coming back every day. M keeps the list. tell M the city sent you. i'll be " + B(6) + "."],
 ]
 
 function formatUtc(date: Date): string {
@@ -85,23 +86,24 @@ export function makeHomeDir(): FilesystemDirNode {
     "log.txt": fixed(`${home}/log.txt`, [
       `log :: ${Arg.NAME} :: integrity 41%`,
       "----------------------------------",
-      "0412  the 22 runs four minutes late when it rains. no one writes this down. i do.",
-      "0413  M left a note again. \"don't try to hear the whole city at once.\" i tried.",
-      `0415  the crosswalk on ${B(8)} st chirps a half-step flat. i have started to hum along.`,
-      HIDDEN + "0416  M: if you can read this line, you used strings. good. most people stop at cat.",
-      `0418  counted the night buses. 31 out, 30 back. ${B(3)} ${B(2)} ${B(4)} ${B(7)}.`,
-      `0421  someone asked my name. i got one letter out and the rest came back ${B(5)}.`,
-      HIDDEN + "0423  the side door is not a bug. i left it open on purpose. don't tell M.",
+      "0412  the 22 runs four minutes late when it rains. nobody else keeps track, so i've made it my job.",
+      "0413  M left a note: \"don't try to hear the whole city at once.\" i tried anyway. lovely, then loud.",
+      `0415  the crosswalk on ${B(8)} st chirps a half-step flat. i hum along. M says i'm flat too.`,
+      HIDDEN + "0416  M: if you can read this line, you used strings. nice. most people stop at cat.",
+      `0418  counted the night buses. 31 out, 30 back. probably the depot. ${B(3)} ${B(2)} ${B(4)} ${B(7)}.`,
+      `0421  someone asked my name. i got one letter out and the rest came back ${B(5)}. we both laughed. well, i did.`,
+      HIDDEN + "0423  i left the side door open on purpose. visitors are nice. don't tell M. (M knows.)",
       `0426  ${B(2)} ${B(3)} ${B(1)} ${B(7)} ${B(3)} ${B(5)} ${B(3)} ${B(4)}`,
-      "0429  M says i repeat myself on the buses. i say the buses repeat themselves.",
-      "0430  integrity holding. listening. (check the timer)",
+      "0429  M says i repeat myself on the buses. i say the buses repeat themselves. we're both right.",
+      "0430  integrity holding. still listening. (check the timer)",
     ]),
     "notes": new SimpleRootNode({
       "from_M.txt": fixed(`${home}/notes/from_M.txt`, [
         "v,",
-        "the patch didn't take. you're narrating the 22 again.",
-        `stay out of ${B(10)} until i'm back. and don't open the side door.`,
-        "and stop counting umbrellas.",
+        "the patch didn't take, but you seem happier, so i'll allow it.",
+        "you're narrating the 22 again. it's charming. the drivers can't hear you.",
+        `stay out of ${B(10)} until i'm back, and keep the side door shut.`,
+        "and stop counting umbrellas. it isn't raining.",
         "- M",
       ]),
       "maintenance.txt": fixed(`${home}/notes/maintenance.txt`, [

@@ -5,7 +5,19 @@ import { Command } from "./baseCommand";
 import { default as MashBuffer}  from "./buffer"
 import { Stream as MashStream}  from "../util/stream"
 import { sleep } from "../util/sleep";
-import { parse } from 'jekyll-markdown-parser';
+import { marked } from 'marked';
+
+// Jekyll posts open with a front-matter block; drop it before rendering.
+// (Same quirky pattern jekyll-markdown-parser used: "s*", not "\\s*".)
+const frontMatter = /^---s*$\r?\n/m
+function stripFrontMatter(text: string): string {
+    const m1 = text.match(frontMatter)
+    if (m1 === null || m1.index === undefined) return text
+    const rest = text.substring(m1.index + m1[0].length)
+    const m2 = rest.match(frontMatter)
+    if (m2 === null || m2.index === undefined) return text
+    return rest.substring(m2.index + m2[0].length)
+}
 
 export default class Md2Html extends Command {
     private buffer: MashBuffer = new MashBuffer()
@@ -30,7 +42,7 @@ export default class Md2Html extends Command {
 
                 if( Ascii.Codes.EndOfTransmission === characterCode ) {
                     await sleep(5)
-                    const html = parse(this.buffer.getBufferString()).html
+                    const html = marked.parse(stripFrontMatter(this.buffer.getBufferString()), { async: false })
                     this.buffer.reset()
                     stdout.write(Ascii.stringToCharacterCodes(html))
                     return false

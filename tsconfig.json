@@ -5,10 +5,13 @@
   
     "compilerOptions": {
       "lib": ["es2023", "DOM"],
+      "types": ["jest"],
       "module": "nodenext",
       "target": "es2022",
+      "rootDir": ".",
       "outDir": "dist",
       "strict": true,
+      "isolatedModules": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
       "moduleResolution": "node16"

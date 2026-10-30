@@ -1,10 +1,10 @@
 # This script commits your changes to your branch then overwrites the published branch with them.
-# Not sure why we want this. 
+# public/js is gitignored; the force-add puts the fresh bundle in the commit gh-pages is split from.
 
 set -ex
 
 MESSAGE=${1:-Deploy}
-yarn docker:build
+npm run build
 
 git add .
 git add --force public

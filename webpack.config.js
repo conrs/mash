@@ -18,6 +18,7 @@ module.exports = {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'public/js'),
   },
+  mode: "production",
   target: "web",
   watch: (process.argv.indexOf('--watch') > -1)
 };

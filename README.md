@@ -1,16 +1,28 @@
 A shell-like web experience I use as my homepage.
 
-Check it out live at https://conrs.github.io/mash
+Check it out live at https://con.rs
 
-## Concepts 
+## Working on it
 
-BrowserCLIWindow (to be renamed) 
-- Manages the buffer of text and current X position of the cursor. 
-   <!> How to detect if rendered position different than raw X position? Needs to be in a container above this point. 
+Node 22 (`.nvmrc`), npm.
 
+```sh
+npm install
+npm test           # jest
+npm run build      # typecheck, then webpack into public/js/bundle.js
+```
 
- ## Stuff
+Serve `public/` with any static server to try it locally.
 
- - With the last implementation, we discovered that the buffer by itself cannot handle 2 dimensional cursor movements, as the contents may involve HTML which would be rendered into smaller visible text. Our thinking is to have the buffer be one dimensional, and have the renderer feed it the approprate number of left arrows or right arrows to get it to the correct position. This actually seems like a better design regardless.
+## Deploying
 
- - I decided to go with an Either approach as this places all known errors into the type signature, thereby making it clear to invokers what they'd need to handle (or, let's be honest, ignore). 
+`bin/deploy.sh "message"` builds, commits (force-adding the gitignored `public/js` bundle), pushes
+`master`, and force-pushes a subtree split of `public/` to `gh-pages`, which GitHub Pages serves.
+
+## Design notes
+
+- The buffer is one-dimensional. Its contents may include HTML that renders as less visible text,
+  so the buffer alone can't handle 2D cursor movement; the renderer feeds it the right number of
+  left or right arrows to reach a position instead.
+- Errors use an Either type, so every known error is in the type signature and callers can see
+  what they'd need to handle (or, let's be honest, ignore).

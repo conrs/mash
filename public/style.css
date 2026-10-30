@@ -71,6 +71,11 @@ html.layer,
   color: #22d3ee;
 }
 
+#cursor.tint {
+  background-color: #22d3ee;
+  color: #22d3ee;
+}
+
 .layer #cursor {
   background-color: #22d3ee;
   color: #22d3ee;

@@ -3,6 +3,7 @@ import { Ascii } from "./util/ascii";
 import { Either } from "./util/either";
 import { Stream as MashStream } from "./util/stream"
 import { Layer } from "./arg/layer"
+import { startNudges } from "./arg/nudge"
 
 // // Hook up the stdin stream to our UI state and system
 // (<any>window).meow = new mash.GithubBlogFilesystem()
@@ -24,6 +25,7 @@ async function init() {
         cursorFillerElement,
         characterStream
     )
+    startNudges(outputElement, cursorElement)
 
 
 

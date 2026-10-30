@@ -87,6 +87,7 @@ document.addEventListener("touchstart", (e) => {
 
 
 document.addEventListener("touchend", (e) => {
+    if((e.target as HTMLElement)?.id === "paste_button") return
     const bottomOfOutput = document.querySelector("#anchor")!.getBoundingClientRect().y - 20;
     const touchY = e.changedTouches.item(e.changedTouches.length - 1)!.clientY
     if(tStart && new Date().getTime() - tStart < 200 && touchY > bottomOfOutput)
@@ -157,10 +158,27 @@ function makeCharacterStream(keyboardStream: MashStream<string>) {
 function supportPastedCharactersToStream(stream: MashStream<number>) {
     document.addEventListener('paste', function(e)
     {
+        // The phone's hidden input gets the paste through its own input event.
+        if(e.target === document.getElementById("mobile_tricker")) return
         let input = e.clipboardData!.getData('text')
 
         stream.write(Ascii.stringToCharacterCodes(input))
     });
+
+    // Phones: the page swallows touches (no long-press menu), so a small Paste button reads the clipboard instead.
+    if(!("ontouchstart" in window)) return
+    const button = document.createElement("button")
+    button.id = "paste_button"
+    button.textContent = "paste"
+    document.body.appendChild(button)
+    button.addEventListener("touchend", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if(!navigator.clipboard?.readText) return
+        navigator.clipboard.readText().then((text) => {
+            if(text) stream.write(Ascii.stringToCharacterCodes(text.replace(/\r?\n$/, "")))
+        }).catch(() => {})
+    })
 }
 function makeKeyboardInputStream() {
     let keyboardStream = new MashStream<string>()

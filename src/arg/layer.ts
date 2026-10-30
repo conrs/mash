@@ -31,9 +31,10 @@ export type DoorContent = {
 export type KnockAnswer = { ok: boolean, lines?: string[], door?: string }
 export type DoorAnswer = { ok: boolean, note?: string } & Partial<DoorContent>
 
+// `via`: the tracked link the teaser came from (the `k7` in `vg://k7?<payload>`), for the Worker's counts only.
 export type ArgRemote = {
-    knock(text: string): Promise<KnockAnswer>,
-    door(token: string): Promise<DoorAnswer>,
+    knock(text: string, via?: string): Promise<KnockAnswer>,
+    door(token: string, via?: string): Promise<DoorAnswer>,
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -44,9 +45,24 @@ async function getJson<T>(path: string): Promise<T> {
     return await res.json() as T
 }
 
+const viaParam = (via?: string) => via ? `&via=${encodeURIComponent(via)}` : ""
+
 export const workerRemote: ArgRemote = {
-    knock: (text) => getJson(`/knock?p=${encodeURIComponent(text)}`),
-    door: (token) => getJson(`/door?k=${encodeURIComponent(token)}`),
+    knock: (text, via) => getJson(`/knock?p=${encodeURIComponent(text)}${viaParam(via)}`),
+    door: (token, via) => getJson(`/door?k=${encodeURIComponent(token)}${viaParam(via)}`),
+}
+
+const VIA_RE = /^[A-Za-z0-9]{1,32}$/
+const VIA_KEY = "vg-via"
+
+/** The prefix of `vg://<via>?<payload>`, when it looks like a link code. */
+export function viaOf(input: string): string | undefined {
+    let text = input.trim().replace(/^["'`\u2018\u2019\u201c\u201d]+/, "")
+    try {
+        text = decodeURIComponent(text)
+    } catch(e) {}
+    const match = text.trim().match(/^vg:\/\/([^?]*)\?/i)
+    return match && VIA_RE.test(match[1]) ? match[1] : undefined
 }
 
 const TOKEN_HASH = /^#k=([A-Za-z0-9_-]{1,64})$/
@@ -69,6 +85,22 @@ export const Layer = {
         return TOKEN_HASH.test(hash)
     },
 
+    /** The visit's tracked link, kept so the door (a reload) can pass it on. */
+    get via(): string | undefined {
+        try {
+            const via = sessionStorage.getItem(VIA_KEY)
+            return via && VIA_RE.test(via) ? via : undefined
+        } catch(e) {
+            return undefined
+        }
+    },
+
+    set via(via: string | undefined) {
+        try {
+            if(via) sessionStorage.setItem(VIA_KEY, via)
+        } catch(e) {}
+    },
+
     /** Asks the Worker whether con.rs/#k=<token> opens anything. Never throws. */
     async openFromHash(hash: string): Promise<void> {
         this.content = undefined
@@ -78,7 +110,7 @@ export const Layer = {
             return
         }
         try {
-            const answer = await this.remote.door(match[1])
+            const answer = await this.remote.door(match[1], this.via)
             if(answer.ok && answer.home && answer.banner && answer.drops && answer.timer) {
                 this.content = { banner: answer.banner, home: answer.home, drops: answer.drops, timer: answer.timer }
             } else if(typeof answer.note === "string") {

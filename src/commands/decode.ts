@@ -1,7 +1,7 @@
 import { Command } from "./baseCommand";
 import { Stream } from "../util/stream";
 import { Either, Right } from "../util/either";
-import { Layer, autoDecode, doorHash, isLeakPayload, isLeakPhrase, isPhraseShaped, phraseFragment, Arg, KnockAnswer } from "../arg/layer";
+import { Layer, autoDecode, doorHash, isLeakPayload, isLeakPhrase, isPhraseShaped, phraseFragment, viaOf, Arg, KnockAnswer } from "../arg/layer";
 import { writeText } from "./io";
 
 // Decoded text is pasted from elsewhere; never let it become markup.
@@ -42,9 +42,12 @@ export class Decode extends Command {
     }
 
     if(isPhraseShaped(decoded.text)) {
+      // A later step's string has no prefix: it keeps the visit's link.
+      const via = viaOf(input)
+      if(via) Layer.via = via
       let answer: KnockAnswer | undefined
       try {
-        answer = await Layer.remote.knock(decoded.text)
+        answer = await Layer.remote.knock(decoded.text, via || Layer.via)
       } catch(e) {}
 
       if(answer === undefined) {

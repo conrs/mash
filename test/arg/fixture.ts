@@ -15,18 +15,23 @@ export const FIXTURE: DoorContent = {
 }
 
 export const knocks: string[] = []
+// The via each knock and door call carried, in order.
+export const vias: { call: "knock" | "door", via?: string }[] = []
 
 export function useFixtureRemote() {
   knocks.length = 0
+  vias.length = 0
   Layer.remote = {
-    async knock(text: string): Promise<KnockAnswer> {
+    async knock(text: string, via?: string): Promise<KnockAnswer> {
       knocks.push(text)
+      vias.push({ call: "knock", via })
       const p = text.trim().toUpperCase()
       if(p === "THE CITY IS LISTENING") return { ok: true, lines: ["fixture second voice", FIXTURE_NEXT] }
       if(p === "FIXTURE ANSWER") return { ok: true, lines: ["fixture opens"], door: FIXTURE_TOKEN }
       return { ok: false }
     },
-    async door(token: string) {
+    async door(token: string, via?: string) {
+      vias.push({ call: "door", via })
       if(token === FIXTURE_TOKEN) return { ok: true, ...FIXTURE }
       if(token === "noted") return { ok: false, note: "fixture note" }
       return { ok: false }

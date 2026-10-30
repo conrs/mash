@@ -2,12 +2,14 @@ import CursoredBufferElementManager from "./cursoredBufferElementManager";
 import { Ascii } from "./util/ascii";
 import { Either } from "./util/either";
 import { Stream as MashStream } from "./util/stream"
+import { Layer, entryHash } from "./arg/layer"
 
 // // Hook up the stdin stream to our UI state and system
 // (<any>window).meow = new mash.GithubBlogFilesystem()
 
 
 function init() {
+    initLayer()
     let keyboardStream = makeKeyboardInputStream()
     let characterStream = makeCharacterStream(keyboardStream)
     let outputElement = document.getElementById("console_output")!
@@ -36,6 +38,27 @@ function init() {
             // The user selected an autocomplete item ; clear what we have so far and replace entire value.
             ;(window as any).stdin.write(Ascii.Codes.ClearScreen)
             ;(window as any).stdin.write(Ascii.stringToCharacterCodes((x.target as HTMLInputElement).value))
+        }
+    })
+}
+
+// The ARG side door: only con.rs/#k=<token> changes anything.
+function initLayer() {
+    Layer.syncFromHash(window.location.hash)
+
+    const root = document.documentElement
+    if(Layer.active) {
+        root.classList.add("layer")
+    }
+
+    Layer.pulse = () => {
+        root.classList.add("pulse")
+        setTimeout(() => root.classList.remove("pulse"), 160)
+    }
+
+    window.addEventListener("hashchange", () => {
+        if((window.location.hash === entryHash()) !== Layer.active) {
+            window.location.reload()
         }
     })
 }

@@ -7,7 +7,7 @@ export class Cd extends Command {
   command: string = "cd"
   helpText: string = "change the current working directory"
   async run(stdin: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
-    let path = args && args[0] ? args[0] : ""
+    let path = args && args[0] ? args[0] : "~"
 
     let returnCode = (await this.filesystem.cd(path)) ? 0 : 1;
 

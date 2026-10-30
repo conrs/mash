@@ -68,7 +68,16 @@ export class Filesystem {
       }
     }
   
+    // Where `~` and a bare `cd` go.
+    home(): string[] {
+      return []
+    }
+
     private getSanitizedAbsolutePath(path: string): string[] {
+      if(path === "~" || path.startsWith("~/")) {
+        path = "/" + this.home().join("/") + path.substring(1)
+      }
+
       const pathTokens = path.split("/")
   
       const isAbsolutePath = pathTokens[0] === "";
@@ -111,6 +120,8 @@ export class Filesystem {
   export abstract class FilesystemLeafNode {
     abstract path: string
     abstract contents(): Promise<string> | string
+    // What `strings` sees, when it differs from what `cat` shows.
+    raw?(): Promise<string> | string
   }
   
   export type FilesystemDirNodeChildren = {

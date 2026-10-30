@@ -1,9 +1,11 @@
 import { FilesystemDirNode, FilesystemNode, Filesystem, SimpleRootNode, FilesystemLeafNode, FilesystemDirNodeChildren } from "./core";
 import { request } from "../util/request";
+import { LayeredRootNode } from "./damagedFs";
+import { Arg, Layer } from "../arg/layer";
 
 export class GithubBlogFilesystem extends Filesystem {
   constructor() {
-    super(new SimpleRootNode(
+    super(new LayeredRootNode(
       {
         "blog": new GithubRootNode(
           "https://api.github.com/repos/conrs/blog/contents/_posts",
@@ -11,6 +13,10 @@ export class GithubBlogFilesystem extends Filesystem {
         )
       }
     ));
+  }
+
+  home() {
+    return Layer.active ? ["home", Arg.NAME] : []
   }
 }
 

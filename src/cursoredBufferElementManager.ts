@@ -144,9 +144,12 @@ export default class CursoredBufferElementManager {
   private processCharacters(characters: number[]) {
     characters.forEach((character) => {
       switch(character) {
-        // case Ascii.Codes.StartOfText:
-        //   document.getElementsByTagName("body")[0].scrollTop = document.getElementsByTagName("body")[0].clientHeight * 20
-        //   break;
+        case Ascii.Codes.StartOfText:
+          // clear: the buffer upstream has already reset itself.
+          this.buffer = ""
+          this.bufferIndex = -1
+          this.bufferDirty = true
+          break;
         case Ascii.Codes.LeftArrow:
           this.bufferIndex--;
 

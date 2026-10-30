@@ -5,9 +5,10 @@ import { Ascii } from "../util/ascii";
 
 export class Ls extends Command {
   command: string = "ls";
-  helpText: string = "list contents of current working directory"
+  helpText: string = "list contents of current working directory (-a shows dotfiles)"
   async run(_: Stream<number>, stdout: Stream<number>, args?: string[]): Promise<number> {
-    let path = args && args[0] ? args[0] : "."
+    const showAll = (args || []).some((x) => x.startsWith("-") && x.includes("a"))
+    let path = (args || []).find((x) => !x.startsWith("-")) || "."
     let returnCode = 0;
 
     let node = await this.filesystem.getNodeAtPath(path)
@@ -20,7 +21,7 @@ export class Ls extends Command {
     } else if(node instanceof FilesystemDirNode) {
       let children = await node.children()
 
-      let files = Object.keys(children).map((key) => {
+      let files = Object.keys(children).filter((key) => showAll || !key.startsWith(".")).map((key) => {
         if(children[key] instanceof FilesystemDirNode) {
           return key + "/"
         } else {

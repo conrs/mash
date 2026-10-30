@@ -15,6 +15,19 @@ import Md2Html from "./md2Html";
 import { Help } from "./help";
 import { Edit } from "./edit";
 import { Say } from "./say";
+import { Pwd } from "./pwd";
+import { Whoami } from "./whoami";
+import { Clear } from "./clear";
+import { Echo } from "./echo";
+import { Grep } from "./grep";
+import { Pager } from "./pager";
+import { Man } from "./man";
+import { Decode } from "./decode";
+import { Strings } from "./strings";
+import { HistoryTracker } from "./history";
+import { complete } from "./complete";
+import { splitPipeline, tokenize } from "../util/tokenize";
+import { Arg, Layer, corrupt } from "../arg/layer";
 
 export default class Mash extends Command {
     private buffer: MashBuffer = new MashBuffer()
@@ -24,7 +37,15 @@ export default class Mash extends Command {
     command: string = "mash"
     helpText: string = "command interpreter - you can be a troll and keep nesting these, currently no way to kill"
     
-    prompt = (name: string = "mash") => `${name}:/${this.filesystem.pwd.join("/")} $ `
+    prompt = (name: string = "mash") => Layer.active ? this.damagedPrompt(name) : `${name}:/${this.filesystem.pwd.join("/")} $ `
+
+    private damagedPrompt(name: string) {
+        const path = "/" + this.filesystem.pwd.join("/")
+        const home = "/" + this.filesystem.home().join("/")
+        const shownPath = path.startsWith(home) ? "~" + path.substring(home.length) : path
+
+        return `<span class="glitch">${Arg.NAME}@${corrupt(name, Layer.random() < 0.5 ? 1 : 2)}</span>:${shownPath} $ `
+    }
 
     constructor(
     ) {
@@ -38,6 +59,16 @@ export default class Mash extends Command {
         Help.register(new Help())
         Help.register(new Edit())
         Help.register(new Say())
+        Help.register(new Pwd(this.filesystem))
+        Help.register(new Whoami())
+        Help.register(new Clear())
+        Help.register(new Echo())
+        Help.register(new Grep(this.filesystem))
+        Help.register(new Pager("less", this.filesystem))
+        Help.register(new Pager("more", this.filesystem))
+        Help.register(new Man())
+        Help.register(new Decode())
+        Help.register(new Strings(this.filesystem))
         Help.register(this)
     }
 
@@ -52,12 +83,22 @@ export default class Mash extends Command {
         
         this.buffer.run(bufferStdin, bufferStdout)
 
+        if(Layer.active) {
+            this.filesystem.pwd = this.filesystem.home()
+            stdout.write(Ascii.stringToCharacterCodes(BANNER))
+        }
+
         return new Promise(async (resolve, _) => {
+            let prompts = 0
             while(true) {
                 let commandToExecute: string = ""
+                let endOfTransmission = false
 
                 stdout.write(Ascii.Codes.NewLine)
                 stdout.write(Ascii.stringToCharacterCodes(this.prompt(promptName)))
+                if(Layer.active && (prompts++ === 0 || Layer.random() < 0.2)) {
+                    Layer.pulse()
+                }
 
                 const resultEither = await stdin.consume(async (characterCodes) => {
                     for(let i = 0; i < characterCodes.length; i++) {
@@ -65,6 +106,7 @@ export default class Mash extends Command {
 
                         switch(characterCode) {
                             case Ascii.Codes.EndOfTransmission: 
+                                endOfTransmission = true
                                 return false;
                             case Ascii.Codes.NewLine:
                                 // Determine if we are in the middle of a line and emit right arrows if so.
@@ -95,26 +137,17 @@ export default class Mash extends Command {
                                 
                                 break;
                             case Ascii.Codes.Tab: 
-                                let nodeEither = await this.filesystem.getCurrentDir()
+                                const line = this.buffer.getBufferString()
+                                const completion = await complete(line, Object.keys(Help.commands), this.filesystem)
 
-                                if(Either.isRight(nodeEither)) {
-                                    const node = Either.getValue(nodeEither)
-                                    let currentCommand = this.buffer.getBufferString()
-                                        .split(" ")
-                                        .pop()!
-                                
-                                    const children = await node.children()
-                                    
-                                    const match = Object.keys(children).find((x: string) => {
-                                        return x.indexOf(currentCommand) === 0
-                                    })
-
-                                    if(match) {
-                                        // Pretend it is user input
-                                        stdin.write(Ascii.stringToCharacterCodes(match.substring(currentCommand.length)))
-                                    }
-                                } else {
-                                    console.error("unable to handle tab - silently failing")
+                                if(completion.insert !== "") {
+                                    // Pretend it is user input
+                                    stdin.write(Ascii.stringToCharacterCodes(completion.insert))
+                                } else if(completion.candidates.length > 1 && this.buffer.getIndex() === this.buffer.getLength()) {
+                                    // Ambiguous: list the matches, then redraw the prompt and the line so far.
+                                    stdout.write(Ascii.stringToCharacterCodes(
+                                        `\n${completion.candidates.join("  ")}\n${this.prompt(promptName)}${line}`
+                                    ))
                                 }
                                 break;
                             case Ascii.Codes.ClearScreen: 
@@ -159,12 +192,12 @@ export default class Mash extends Command {
                 if(Either.isLeft(resultEither)) {
                     console.error("mash.ts - Received StreamAlreadyHasListenerError while consuming stream.")
                 } else {
-                    if(commandToExecute != "") {    
+                    if(commandToExecute.trim() != "") {
                         stdout.write(Ascii.Codes.NewLine)
                         this.historyTracker.addLine(commandToExecute)
     
                         await this.execute(commandToExecute, stdin, stdout)
-                    } else {
+                    } else if(endOfTransmission) {
                         stdout.write(Ascii.stringToCharacterCodes(`\nExiting mash shell '${promptName}'\n`))
                         resolve(0)
                         break;
@@ -176,8 +209,8 @@ export default class Mash extends Command {
 
     private async execute(string: string, stdin: MashStream<number>, stdout: MashStream<number>) {
         try {
-          let result = string.split("|").reduce((acc, command) => {
-            let tokens = (command || "").split(" ").filter((x) => x != "")
+          let result = splitPipeline(string).reduce((acc, command) => {
+            let tokens = tokenize(command || "")
     
             let cmdEither = Help.getCommand(tokens[0] || "")
             let args = tokens.slice(1)
@@ -228,40 +261,14 @@ export default class Mash extends Command {
     
 }
 
-class HistoryTracker {
-    private history: string[] = []
-    private index: number = 1
-    
-    // Up is actually the last line in here, so we read the value then move up if possible. 
-    // If there is no up, we need to remember, as the next call to this should fail. 
-    moveUp(): Either<NoHistoryError, string> {
-      if(this.index > 0) {
-        return Right(this.history[--this.index])
-      } else {
-        return Left(new NoHistoryError())
-      }
-    }
-  
-    moveDown(): Either<NoHistoryError, string> {
-        if(this.index < this.history.length - 1) {
-            return Right(this.history[++this.index])            
-        } else {
-            if(this.index == this.history.length - 1) {
-                // Act like it is a new command
-                this.index++;
-                return Right("")
-            }
-            return Left(new NoHistoryError())
-        }
-    }
-  
-    addLine(line: string) {
-        this.history.push(line)
-        this.index++;
-    }
-  }
+const BANNER = [
+    "",
+    "[    0.000000] signal recovered on side door",
+    "[    0.004113] integrity check ........ 41%",
+    `[    0.009771] mounting /home/${Arg.NAME} ... ok`,
+    "[    0.012040] warning: name table corrupted",
+].join("\n")
 
-class NoHistoryError extends Error {}
 class CommandNotFoundError extends Error {
     constructor(
         public command: string) {

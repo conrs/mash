@@ -22,7 +22,8 @@ export class Ascii {
              code == this.Codes.NewLine ||
              code == this.Codes.Backspace ||
              code == this.Codes.Delete ||
-            (code >= 32 && code <= 126) // numbers, letters, punctuation, sushis, sashimis
+            (code >= 32 && code <= 126) || // numbers, letters, punctuation, sushis, sashimis
+            (code >= 0x2591 && code <= 0x2593) || code == 0x2588 // the redaction blocks
     }
   
     static fromCharCode(charCode: number): string {

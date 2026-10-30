@@ -11,7 +11,7 @@ export const Arg = {
     LEAK_PHRASE: "THE CITY IS LISTENING",
     // The side door: con.rs/#k=<ENTRY_TOKEN>
     ENTRY_TOKEN: "listening",
-    WAITLIST_URL: "https://vergil-waitlist.matt-d11.workers.dev/?from=arg",
+    WAITLIST_URL: "https://invite.matt-d11.workers.dev/?from=arg",
     // Drop 1 unlocks here, then one more every 24h. UTC.
     UNLOCK_START: "2026-10-30T16:00:00Z",
     NAME: "v█████",

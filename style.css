@@ -92,3 +92,7 @@ html.layer,
 .layer.pulse #cursor {
   background-color: #ef4444;
 }
+
+/* Phones: paste into the shell (the page swallows the long-press menu). */
+#paste_button { position: fixed; right: 12px; bottom: 12px; z-index: 10; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid #22d3ee; background: #111318; color: #22d3ee; font: 14px monospace; opacity: .85; }

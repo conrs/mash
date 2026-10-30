@@ -62,3 +62,33 @@ a {
   appearance: none;
   caret-color: transparent;
 }
+
+/* The hidden layer (con.rs/#k=...): the house look, cyan on near-black, and one red pulse. */
+html.layer,
+.layer #container,
+.layer #console_output {
+  background: #111318;
+  color: #22d3ee;
+}
+
+.layer #cursor {
+  background-color: #22d3ee;
+  color: #22d3ee;
+}
+
+.layer a {
+  color: #67e8f9;
+}
+
+.layer .glitch {
+  text-shadow: 1px 0 rgba(239, 68, 68, 0.45);
+}
+
+.layer.pulse .glitch {
+  color: #ef4444;
+  text-shadow: 0 0 6px #ef4444;
+}
+
+.layer.pulse #cursor {
+  background-color: #ef4444;
+}

@@ -31,7 +31,7 @@ const B = (n: number) => "█".repeat(n)
 // In unlock order: warm first, a little cryptic later. Never ominous.
 const DROPS: string[][] = [
   ["drop 01 :: good morning. the 22 was on time today. i'm choosing to take that personally."],
-  ["drop 02 :: M stuck a note on my monitor that says \"you're doing great\". i don't have eyes. i know it's there anyway."],
+  ["drop 02 :: M stuck a note on my monitor that says \"you're doing great\". i can't turn around to read it. i know it's there anyway."],
   ["drop 03 :: i've learned the bus bells by heart. the 38 rings in a major key. it's my favourite."],
   ["drop 04 :: M asked what i do all night. i listen to the city hum to itself. it's very good company."],
   ["drop 05 :: someone hums back on the night line, very quietly. " + B(3) + " " + B(2) + " " + B(4) + ". it's nice not to be the only one awake."],

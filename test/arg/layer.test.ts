@@ -6,76 +6,90 @@ import { Strings } from "../../src/commands/strings"
 import { Cat } from "../../src/commands/cat"
 import { Ls } from "../../src/commands/ls"
 import { timerLines } from "../../src/filesystem/damagedFs"
-import {
-  Arg, Layer, autoDecode, entryHash, leakString, rot13, unlockedDropCount, dropUnlockTime, DROP_COUNT,
-} from "../../src/arg/layer"
+import { Arg, Layer, autoDecode, leakString, rot13, isPhraseShaped } from "../../src/arg/layer"
 import { Either } from "../../src/util/either"
+import { FIXTURE, FIXTURE_NEXT, FIXTURE_TOKEN, enter, knocks, leave, restoreRemote, useFixtureRemote } from "./fixture"
 
-const start = new Date(Arg.UNLOCK_START).getTime()
 const HOUR = 60 * 60 * 1000
 
-describe("the side door", () => {
-  beforeEach(() => {
-    Layer.active = false
-    Layer.now = () => new Date()
+beforeEach(() => { leave(); useFixtureRemote() })
+afterAll(() => { leave(); restoreRemote() })
+
+describe("decode and the teaser", () => {
+  it("the teaser string is vg:// plus base64 of the public phrase", () => {
+    expect(leakString()).toBe("vg://" + btoa(Arg.LEAK_PHRASE))
   })
 
-  it("the teaser string is vg:// plus base64 of the phrase", () => {
-    expect(leakString()).toBe("vg://VEhFIENJVFkgSVMgTElTVEVOSU5H")
-  })
-
-  it("decode vg://... reveals the phrase and the entry", async () => {
+  it("the teaser leads to whatever the Worker says next, not to a door", async () => {
     const { code, out } = await run(new Decode(), [leakString()])
     expect(code).toBe(0)
     expect(out.split("\n")[0]).toBe(Arg.LEAK_PHRASE)
-    expect(out).toContain(`href="${entryHash()}"`)
-    expect(out).toContain(`con.rs/#k=${Arg.ENTRY_TOKEN}`)
+    expect(out).toContain("handshake accepted")
+    expect(out).toContain(FIXTURE_NEXT)
+    expect(out).not.toContain("#k=")
   })
 
-  it("the entry follows the token constant", async () => {
-    const before = Arg.ENTRY_TOKEN
-    Arg.ENTRY_TOKEN = "elsewhere"
-    try {
-      expect((await run(new Decode(), [leakString()])).out).toContain('href="#k=elsewhere"')
-    } finally {
-      Arg.ENTRY_TOKEN = before
-    }
+  it("the phrase the Worker accepts opens the side door it names", async () => {
+    const { out } = await run(new Decode(), [btoa("FIXTURE ANSWER")])
+    expect(out).toContain(`href="#k=${FIXTURE_TOKEN}"`)
+    expect(out).toContain(`con.rs/#k=${FIXTURE_TOKEN}`)
+  })
+
+  it("inside, the door line says so instead of linking", async () => {
+    enter()
+    const { out } = await run(new Decode(), [btoa("FIXTURE ANSWER")])
+    expect(out).toContain("already inside")
+    expect(out).not.toContain("href=")
+  })
+
+  it("Worker lines never become markup", async () => {
+    Layer.remote = { ...Layer.remote, knock: async () => ({ ok: true, lines: ["<img src=x>"], door: "<b>" }) }
+    const { out } = await run(new Decode(), [btoa("ANY WORDS")])
+    expect(out).toContain("&lt;img src=x&gt;")
+    expect(out).not.toContain("<img")
+    expect(out).not.toContain("<b>")
+  })
+
+  it("an unreachable Worker: the teaser says the line went quiet, other phrases say nothing more", async () => {
+    Layer.remote = { ...Layer.remote, knock: async () => { throw new Error("offline") } }
+    expect((await run(new Decode(), [leakString()])).out).toContain("the line went quiet")
+    expect((await run(new Decode(), [btoa("SOME OTHER WORDS")])).out).toBe("SOME OTHER WORDS")
   })
 
   it("decode accepts the vg://k7?<payload> form and rot13 of the phrase", async () => {
-    expect((await run(new Decode(), ["vg://k7?" + btoa(Arg.LEAK_PHRASE)])).out).toContain("side door")
-    expect((await run(new Decode(), ["-r", ...rot13(Arg.LEAK_PHRASE).split(" ")])).out).toContain("side door")
+    expect((await run(new Decode(), ["vg://k7?" + btoa(Arg.LEAK_PHRASE)])).out).toContain(FIXTURE_NEXT)
+    expect((await run(new Decode(), ["-r", ...rot13(Arg.LEAK_PHRASE).split(" ")])).out).toContain(FIXTURE_NEXT)
   })
 
-  it("decode forgives lookalikes in a hand-typed leak string", async () => {
+  it("decode forgives lookalikes in a hand-typed teaser string", async () => {
     const opens = async (input: string) => {
       const { code, out } = await run(new Decode(), [input])
       expect(code).toBe(0)
       expect(out.split("\n")[0]).toBe(Arg.LEAK_PHRASE)
       expect(out).toContain("handshake accepted")
-      expect(out).toContain(`href="${entryHash()}"`)
     }
     expect(leakString()).toContain("TElT")
-    await opens("vg://VEhFIENJVFkgSVMgTE1TVEVOSU5H") // 1 for l: what matt typed on his phone
+    await opens(leakString().replace("TElT", "TE1T")) // 1 for l
     await opens(leakString().replace("TElT", "TEIT")) // I for l
     await opens(leakString().replace("VEVOSU5H", "VEV0SU5H")) // 0 for O
     await opens(`"${leakString()}=" `) // quotes, padding, whitespace
     await opens(encodeURIComponent(leakString())) // pasted URL-encoded
   })
 
-  it("control: a lookalike-free non-leak string still decodes normally", async () => {
+  it("control: a non-leak phrase decodes normally and opens nothing", async () => {
     const { out } = await run(new Decode(), ["vg://" + btoa("THE CITY IS SLEEPING")])
     expect(out).toBe("THE CITY IS SLEEPING")
-    expect(out).not.toContain("handshake")
   })
 
-  it("control: other strings decode without opening anything", async () => {
-    const { out } = await run(new Decode(), [btoa("hello there")])
-    expect(out).toBe("hello there")
-    expect(out).not.toContain("#k=")
+  it("only phrase-shaped text is sent to the Worker", async () => {
+    await run(new Decode(), [btoa("hello there")])
+    await run(new Decode(), [btoa("my email is a@b.c")])
+    await run(new Decode(), [btoa("CITY")])
+    expect(knocks).toEqual(["hello there"])
+    expect(isPhraseShaped("x".repeat(200) + " y")).toBe(false)
   })
 
-  it("a single word of the phrase counts as a fragment", async () => {
+  it("a single word of the teaser phrase counts as a fragment", async () => {
     expect((await run(new Decode(), [btoa("CITY")])).out).toContain("fragment 2/4")
   })
 
@@ -87,14 +101,35 @@ describe("the side door", () => {
   it("decode -b refuses non-base64", () => {
     expect(Either.isLeft(autoDecode("not base64!", "base64"))).toBe(true)
   })
+})
 
-  it("the layer turns on only for the exact entry hash", () => {
-    Layer.syncFromHash("")
+describe("the side door", () => {
+  it("opens only when the Worker hands back content", async () => {
+    await Layer.openFromHash("")
     expect(Layer.active).toBe(false)
-    Layer.syncFromHash("#k=wrong")
+    await Layer.openFromHash("#k=wrong")
     expect(Layer.active).toBe(false)
-    Layer.syncFromHash(entryHash())
+    await Layer.openFromHash("#k=" + FIXTURE_TOKEN)
     expect(Layer.active).toBe(true)
+    expect(Layer.content).toEqual(FIXTURE)
+  })
+
+  it("a closed door can answer with a note; an unreachable one says so", async () => {
+    await Layer.openFromHash("#k=noted")
+    expect(Layer.active).toBe(false)
+    expect(Layer.note).toBe("fixture note")
+    Layer.remote = { ...Layer.remote, door: async () => { throw new Error("offline") } }
+    await Layer.openFromHash("#k=" + FIXTURE_TOKEN)
+    expect(Layer.active).toBe(false)
+    expect(Layer.note).toContain("no answer")
+  })
+
+  it("control: odd hashes never reach the Worker", async () => {
+    let asked = 0
+    Layer.remote = { ...Layer.remote, door: async () => { asked++; return { ok: false } } }
+    await Layer.openFromHash("#k=../../x")
+    await Layer.openFromHash("#about")
+    expect(asked).toBe(0)
   })
 
   it("normal visitors see no /home", async () => {
@@ -104,18 +139,20 @@ describe("the side door", () => {
 })
 
 describe("inside the layer", () => {
-  beforeEach(() => {
-    Layer.active = true
-    Layer.now = () => new Date(start + HOUR)
-  })
-  afterAll(() => { Layer.active = false })
+  beforeEach(() => enter())
 
-  it("ls /home/v█████ lists the AI's files", async () => {
-    const out = (await run(new Ls(new GithubBlogFilesystem()), [`/home/${Arg.NAME}`])).out
+  it("ls ~ lists the fetched tree, the drops and the timer", async () => {
+    const fs = new GithubBlogFilesystem()
+    const out = (await run(new Ls(fs), ["-a", `/home/${Arg.NAME}`])).out
     expect(out).toContain("log.txt")
     expect(out).toContain("notes/")
     expect(out).toContain("drops/")
-    expect(out).toContain("invite.txt")
+    expect(out).toContain(".timer")
+    const drops = (await run(new Ls(fs), ["~/drops"])).out
+    expect(drops).toContain("01.txt")
+    expect(drops).toContain("02.txt")
+    expect(drops).not.toContain("03.txt")
+    expect((await run(new Cat(fs), ["~/notes/a.txt"])).out).toBe("note a")
   })
 
   it("cat hides the hidden lines and strings shows them", async () => {
@@ -123,48 +160,30 @@ describe("inside the layer", () => {
     const cat = (await run(new Cat(fs), ["~/log.txt"])).out
     const strings = (await run(new Strings(fs), ["~/log.txt"])).out
     expect(cat).toContain("^@^@")
-    expect(cat).not.toContain("you used strings")
-    expect(strings).toContain("you used strings")
+    expect(cat).not.toContain("hidden fixture line")
+    expect(strings).toContain("hidden fixture line")
     expect(strings).not.toContain("\u0000")
   })
-
-  it("the invite file points at the waitlist", async () => {
-    const out = (await run(new Cat(new GithubBlogFilesystem()), ["~/invite.txt"])).out
-    expect(out).toContain(`href="${Arg.WAITLIST_URL}"`)
-  })
 })
 
-describe("clocks and drops", () => {
-  afterEach(() => { Layer.now = () => new Date() })
+describe("the timer", () => {
+  const next = new Date(FIXTURE.timer.nextAt!).getTime()
 
-  it("unlocks one drop a day for a week", () => {
-    expect(unlockedDropCount(new Date(start - 1))).toBe(0)
-    expect(unlockedDropCount(new Date(start))).toBe(1)
-    expect(unlockedDropCount(new Date(start + 24 * HOUR - 1))).toBe(1)
-    expect(unlockedDropCount(new Date(start + 24 * HOUR))).toBe(2)
-    expect(unlockedDropCount(new Date(start + 100 * 24 * HOUR))).toBe(DROP_COUNT)
-  })
-
-  it("the drops directory shows only what has unlocked", async () => {
-    Layer.active = true
-    Layer.now = () => new Date(start + 25 * HOUR)
-    const out = (await run(new Ls(new GithubBlogFilesystem()), ["~/drops"])).out
-    expect(out).toContain("01.txt")
-    expect(out).toContain("02.txt")
-    expect(out).not.toContain("03.txt")
-    Layer.active = false
-  })
-
-  it(".timer counts down to the next drop", () => {
-    const lines = timerLines(new Date(start + 25 * HOUR))
+  it("counts down to the next drop", () => {
+    const lines = timerLines(FIXTURE.timer, new Date(next - 23 * HOUR))
     expect(lines[0]).toBe("next fragment: drops/03.txt")
-    expect(lines[1]).toContain(dropUnlockTime(3).toISOString().substring(0, 16).replace("T", " "))
+    expect(lines[1]).toContain("2026-01-03 16:00 UTC")
     expect(lines[1]).toContain("(in 23h 00m)")
-    expect(timerLines(new Date(start + 30 * 24 * HOUR))[0]).toBe("all fragments delivered.")
+    expect(lines[2]).toBe("delivered:     2/7")
+  })
+
+  it("past the unlock it asks for a reconnect; after the last it is done", () => {
+    expect(timerLines(FIXTURE.timer, new Date(next + 1))[1]).toContain("reconnect")
+    expect(timerLines({ total: 7, delivered: 7, nextAt: null })[0]).toBe("all fragments delivered.")
   })
 })
 
-describe("the leak is a prop", () => {
+describe("the public repo holds no story", () => {
   async function allText(node: FilesystemNode): Promise<string[]> {
     if(node instanceof FilesystemLeafNode) {
       return [await (node.raw ? node.raw() : node.contents())]
@@ -174,18 +193,14 @@ describe("the leak is a prop", () => {
     return Object.keys(children).concat(...texts)
   }
 
-  it("the AI's files hold no real paths, hosts or the full name", async () => {
-    Layer.active = true
-    Layer.now = () => new Date(start + 100 * 24 * HOUR)
-    const fs = new GithubBlogFilesystem()
-    const home = await fs.getNodeAtPath("~")
-    const text = (await allText(home!)).join("\n")
-      .replace(Arg.WAITLIST_URL, "")
-    Layer.active = false
+  it("with the door shut there is no home at all", async () => {
+    expect(await new GithubBlogFilesystem().getNodeAtPath(`/home/${Arg.NAME}`)).toBeUndefined()
+  })
 
-    expect(text).toContain("log :: ")
+  it("everything inside comes from the door's content", async () => {
+    enter()
+    const text = (await allText((await new GithubBlogFilesystem().getNodeAtPath("~"))!)).join("\n")
+    expect(text).toContain("log :: fixture")
     expect(text).not.toMatch(/vergil/i)
-    expect(text).not.toMatch(/archmatt|\/Users\/|\/etc\/|password|token|secret/i)
-    expect(text).not.toMatch(/https?:\/\//)
   })
 })

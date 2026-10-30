@@ -1,7 +1,7 @@
 import { Command } from "./baseCommand";
 import { Stream } from "../util/stream";
 import { Either, Right } from "../util/either";
-import { Layer, autoDecode, entryHash, entryUrl, isLeakPayload, isLeakPhrase, phraseFragment, Arg } from "../arg/layer";
+import { Layer, autoDecode, doorHash, isLeakPayload, isLeakPhrase, isPhraseShaped, phraseFragment, Arg, KnockAnswer } from "../arg/layer";
 import { writeText } from "./io";
 
 // Decoded text is pasted from elsewhere; never let it become markup.
@@ -29,19 +29,35 @@ export class Decode extends Command {
 
     const decoded = Either.getValue(decodedEither)
     const lines = [escapeHtml(decoded.text)]
+    const leak = isLeakPhrase(decoded.text)
 
-    if(isLeakPhrase(decoded.text)) {
+    if(leak) {
       Layer.pulse()
-      lines.push(
-        `<span class="glitch">░▒▓ handshake accepted ▓▒░</span>`,
-        Layer.active ?
-          "you are already inside." :
-          `a side door opened: <a href="${entryHash()}">${entryUrl()}</a>`
-      )
+      lines.push(`<span class="glitch">░▒▓ handshake accepted ▓▒░</span>`)
     } else {
       const fragment = phraseFragment(decoded.text)
       if(fragment !== undefined) {
         lines.push(`[fragment ${fragment}/${Arg.LEAK_PHRASE.split(" ").length} recognised. keep listening.]`)
+      }
+    }
+
+    if(isPhraseShaped(decoded.text)) {
+      let answer: KnockAnswer | undefined
+      try {
+        answer = await Layer.remote.knock(decoded.text)
+      } catch(e) {}
+
+      if(answer === undefined) {
+        if(leak) lines.push("the line went quiet. try again later.")
+      } else if(answer.ok) {
+        if(!leak) Layer.pulse()
+        lines.push(...(answer.lines || []).map(escapeHtml))
+        if(answer.door) {
+          const hash = escapeHtml(doorHash(answer.door))
+          lines.push(Layer.active ?
+            "you are already inside." :
+            `a side door opened: <a href="${hash}">con.rs/${hash}</a>`)
+        }
       }
     }
 

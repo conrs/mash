@@ -2,7 +2,8 @@ import Mash from "../../src/commands/mash"
 import { Stream } from "../../src/util/stream"
 import { Ascii } from "../../src/util/ascii"
 import { Either } from "../../src/util/either"
-import { Layer, leakString, Arg } from "../../src/arg/layer"
+import { leakString, Arg } from "../../src/arg/layer"
+import { FIXTURE_NEXT, enter, leave, restoreRemote, useFixtureRemote } from "../arg/fixture"
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 300))
 
@@ -22,13 +23,15 @@ async function session(lines: string[]): Promise<string> {
 }
 
 describe("mash", () => {
-  afterEach(() => { Layer.active = false })
+  beforeEach(() => useFixtureRemote())
+  afterEach(() => leave())
+  afterAll(() => restoreRemote())
 
-  it("the decode -> side door flow works from the prompt", async () => {
+  it("the decode -> next clue flow works from the prompt", async () => {
     const screen = await session([`decode ${leakString()}\n`])
     expect(screen).toContain("mash:/ $ ")
     expect(screen).toContain(Arg.LEAK_PHRASE)
-    expect(screen).toContain(`#k=${Arg.ENTRY_TOKEN}`)
+    expect(screen).toContain(FIXTURE_NEXT)
   })
 
   it("an empty line gives a new prompt instead of leaving the shell", async () => {
@@ -43,9 +46,9 @@ describe("mash", () => {
   })
 
   it("inside the layer the prompt is damaged and starts at home", async () => {
-    Layer.active = true
+    enter()
     const screen = await session(["pwd\n"])
-    expect(screen).toContain("signal recovered")
+    expect(screen).toContain("fixture banner")
     expect(screen).toContain(`<span class="glitch">${Arg.NAME}@`)
     expect(screen).toContain(`/home/${Arg.NAME}`)
   })
@@ -53,6 +56,6 @@ describe("mash", () => {
   it("control: outside the layer the prompt is the old one", async () => {
     const screen = await session(["pwd\n"])
     expect(screen).not.toContain("glitch")
-    expect(screen).not.toContain("signal recovered")
+    expect(screen).not.toContain("fixture banner")
   })
 })

@@ -26,3 +26,6 @@ Serve `public/` with any static server to try it locally.
   left or right arrows to reach a position instead.
 - Errors use an Either type, so every known error is in the type signature and callers can see
   what they'd need to handle (or, let's be honest, ignore).
+- The `decode` command and the glitchy side-door layer (`src/arg/`) are an engine only: what a phrase
+  leads to, which doors open and what's behind them come from a small JSON endpoint at runtime, so
+  this repo can stay public without spoiling anything.

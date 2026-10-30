@@ -15,10 +15,11 @@ import { complete } from "../../src/commands/complete"
 import { splitPipeline, tokenize } from "../../src/util/tokenize"
 import { Ascii } from "../../src/util/ascii"
 import { Either } from "../../src/util/either"
-import { Layer, Arg } from "../../src/arg/layer"
+import { Arg } from "../../src/arg/layer"
+import { enter, leave } from "../arg/fixture"
 
 describe("linux-y commands", () => {
-  beforeEach(() => { Layer.active = false })
+  beforeEach(() => { leave() })
 
   it("pwd prints the working directory", async () => {
     const fs = new GithubBlogFilesystem()
@@ -32,7 +33,7 @@ describe("linux-y commands", () => {
   })
 
   it("whoami answers with the redacted name inside the layer", async () => {
-    Layer.active = true
+    enter()
     const { out } = await run(new Whoami())
     expect(out).toContain(Arg.NAME)
     expect(out).not.toContain("guest")
@@ -75,7 +76,7 @@ describe("linux-y commands", () => {
   })
 
   it("ls hides dotfiles unless -a", async () => {
-    Layer.active = true
+    enter()
     const fs = new GithubBlogFilesystem()
     const home = "~"
     expect((await run(new Ls(fs), [home])).out).not.toContain(".timer")
@@ -125,7 +126,7 @@ describe("history", () => {
 })
 
 describe("tab completion", () => {
-  beforeEach(() => { Layer.active = false })
+  beforeEach(() => { leave() })
   const commands = ["cat", "cd", "clear", "ls", "less"]
 
   it("completes a unique command with a trailing space", async () => {
@@ -142,13 +143,13 @@ describe("tab completion", () => {
 
   it("completes the redacted home only inside the layer", async () => {
     expect((await complete("cd /ho", commands, new GithubBlogFilesystem())).candidates).toEqual([])
-    Layer.active = true
+    enter()
     expect((await complete("cd /ho", commands, new GithubBlogFilesystem())).insert).toBe("me/")
     expect((await complete("cd /home/v", commands, new GithubBlogFilesystem())).insert).toBe(Arg.NAME.substring(1) + "/")
   })
 
   it("keeps dotfiles out until a dot is typed", async () => {
-    Layer.active = true
+    enter()
     const fs = new GithubBlogFilesystem()
     expect((await complete("cat ~/.", commands, fs)).insert).toBe("timer ")
     expect((await complete("cat ~/", commands, fs)).candidates).not.toContain(".timer")

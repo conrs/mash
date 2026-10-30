@@ -2,14 +2,14 @@ import CursoredBufferElementManager from "./cursoredBufferElementManager";
 import { Ascii } from "./util/ascii";
 import { Either } from "./util/either";
 import { Stream as MashStream } from "./util/stream"
-import { Layer, entryHash } from "./arg/layer"
+import { Layer } from "./arg/layer"
 
 // // Hook up the stdin stream to our UI state and system
 // (<any>window).meow = new mash.GithubBlogFilesystem()
 
 
-function init() {
-    initLayer()
+async function init() {
+    await initLayer()
     let keyboardStream = makeKeyboardInputStream()
     let characterStream = makeCharacterStream(keyboardStream)
     let outputElement = document.getElementById("console_output")!
@@ -42,9 +42,10 @@ function init() {
     })
 }
 
-// The ARG side door: only con.rs/#k=<token> changes anything.
-function initLayer() {
-    Layer.syncFromHash(window.location.hash)
+// The ARG side door: only con.rs/#k=<token> changes anything, and only the Worker knows which tokens open.
+// TODO(M): the maintenance hatch from testing (con.rs/#k=hatch) is still there. weld it shut before launch.
+async function initLayer() {
+    await Layer.openFromHash(window.location.hash)
 
     const root = document.documentElement
     if(Layer.active) {
@@ -57,7 +58,7 @@ function initLayer() {
     }
 
     window.addEventListener("hashchange", () => {
-        if((window.location.hash === entryHash()) !== Layer.active) {
+        if(Layer.isDoorHash(window.location.hash) || Layer.active || Layer.note) {
             window.location.reload()
         }
     })
@@ -65,7 +66,7 @@ function initLayer() {
 
 function readyListener(e: Event) {
     if(document.readyState === 'complete') {
-        init();
+        init()
         ;(window as any).inputCommand = inputCommand
         document.removeEventListener('readystatechange', readyListener)
 

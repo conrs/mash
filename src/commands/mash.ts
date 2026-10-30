@@ -83,9 +83,11 @@ export default class Mash extends Command {
         
         this.buffer.run(bufferStdin, bufferStdout)
 
-        if(Layer.active) {
+        if(Layer.content) {
             this.filesystem.pwd = this.filesystem.home()
-            stdout.write(Ascii.stringToCharacterCodes(BANNER))
+            stdout.write(Ascii.stringToCharacterCodes(Layer.content.banner.join("\n")))
+        } else if(Layer.note) {
+            stdout.write(Ascii.stringToCharacterCodes(`\n<span class="glitch">${escapeHtml(Layer.note)}</span>`))
         }
 
         return new Promise(async (resolve, _) => {
@@ -261,13 +263,7 @@ export default class Mash extends Command {
     
 }
 
-const BANNER = [
-    "",
-    "[    0.000000] signal recovered on side door",
-    "[    0.004113] integrity check ........ 41%",
-    `[    0.009771] mounting /home/${Arg.NAME} ... ok`,
-    "[    0.012040] warning: name table corrupted",
-].join("\n")
+const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 class CommandNotFoundError extends Error {
     constructor(

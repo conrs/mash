@@ -1,38 +1,92 @@
 /**
  * The hidden "damaged AI" layer of the shell (an ARG prop). Everything here is fiction:
- * no real system access, no real files, nothing fetched.
+ * no real system access, no real files.
  *
- * Change the knobs in Arg; nothing else hard-codes them.
+ * This repo is public, so it holds only the engine. What comes after the teaser's phrase, the side
+ * door and everything behind it are fetched from the waitlist Worker at runtime.
  */
 import { Either, Left, Right } from "../util/either"
 
 export const Arg = {
     // The phrase the teasers leak, as `vg://` + base64 of it.
     LEAK_PHRASE: "THE CITY IS LISTENING",
-    // The side door: con.rs/#k=<ENTRY_TOKEN>
-    ENTRY_TOKEN: "listening",
-    WAITLIST_URL: "https://invite.matt-d11.workers.dev/?from=arg",
-    // The day the console goes live (set it to the push date). Drop 1 unlocks here,
-    // then one more every 24h. UTC; 16:00Z is 9am Pacific.
-    UNLOCK_START: "2026-10-30T16:00:00Z",
+    API: "https://invite.matt-d11.workers.dev/v1/arg",
     NAME: "v█████",
 }
 
 export const GLITCH_GLYPHS = ["░", "▒", "▓", "█"]
 
-export const entryHash = () => `#k=${Arg.ENTRY_TOKEN}`
-export const entryUrl = () => `con.rs/${entryHash()}`
 export const leakString = () => `vg://${btoa(Arg.LEAK_PHRASE)}`
+export const doorHash = (token: string) => `#k=${token}`
+
+/** A home-directory tree: a file is its lines, a directory an object. */
+export type HomeTree = { [name: string]: string[] | HomeTree }
+
+export type DoorContent = {
+    banner: string[],
+    home: HomeTree,
+    drops: string[][],
+    timer: { total: number, delivered: number, nextAt: string | null },
+}
+export type KnockAnswer = { ok: boolean, lines?: string[], door?: string }
+export type DoorAnswer = { ok: boolean, note?: string } & Partial<DoorContent>
+
+export type ArgRemote = {
+    knock(text: string): Promise<KnockAnswer>,
+    door(token: string): Promise<DoorAnswer>,
+}
+
+async function getJson<T>(path: string): Promise<T> {
+    const res = await fetch(Arg.API + path, { cache: "no-store" })
+    if(!res.ok) {
+        throw new Error(`arg: ${res.status}`)
+    }
+    return await res.json() as T
+}
+
+export const workerRemote: ArgRemote = {
+    knock: (text) => getJson(`/knock?p=${encodeURIComponent(text)}`),
+    door: (token) => getJson(`/door?k=${encodeURIComponent(token)}`),
+}
+
+const TOKEN_HASH = /^#k=([A-Za-z0-9_-]{1,64})$/
 
 export const Layer = {
-    active: false,
+    content: undefined as DoorContent | undefined,
+    // A line a closed door answers with, shown once at boot.
+    note: undefined as string | undefined,
+    remote: workerRemote,
     now: (): Date => new Date(),
     random: (): number => Math.random(),
     // index.ts swaps in the real red flicker.
     pulse: (): void => {},
 
-    syncFromHash(hash: string) {
-        this.active = hash === entryHash()
+    get active(): boolean {
+        return this.content !== undefined
+    },
+
+    isDoorHash(hash: string): boolean {
+        return TOKEN_HASH.test(hash)
+    },
+
+    /** Asks the Worker whether con.rs/#k=<token> opens anything. Never throws. */
+    async openFromHash(hash: string): Promise<void> {
+        this.content = undefined
+        this.note = undefined
+        const match = hash.match(TOKEN_HASH)
+        if(!match) {
+            return
+        }
+        try {
+            const answer = await this.remote.door(match[1])
+            if(answer.ok && answer.home && answer.banner && answer.drops && answer.timer) {
+                this.content = { banner: answer.banner, home: answer.home, drops: answer.drops, timer: answer.timer }
+            } else if(typeof answer.note === "string") {
+                this.note = answer.note
+            }
+        } catch(e) {
+            this.note = "side door: no answer. (try again later.)"
+        }
     },
 }
 
@@ -131,17 +185,8 @@ export function phraseFragment(text: string): number | undefined {
     return index === -1 || normalizePhrase(text).includes(" ") ? undefined : index + 1
 }
 
-export const DROP_COUNT = 7
-const DAY_MS = 24 * 60 * 60 * 1000
-
-export function dropUnlockTime(dropNumber: number): Date {
-    return new Date(new Date(Arg.UNLOCK_START).getTime() + (dropNumber - 1) * DAY_MS)
-}
-
-export function unlockedDropCount(now: Date = Layer.now()): number {
-    const elapsed = now.getTime() - new Date(Arg.UNLOCK_START).getTime()
-    if(elapsed < 0) {
-        return 0
-    }
-    return Math.min(DROP_COUNT, Math.floor(elapsed / DAY_MS) + 1)
+/** Only words go to the Worker: whatever else people decode stays in their browser. */
+export function isPhraseShaped(text: string): boolean {
+    const phrase = normalizePhrase(text)
+    return phrase.length <= 120 && /^[A-Z]+( [A-Z]+){1,11}$/.test(phrase)
 }

@@ -79,6 +79,28 @@ export function decodeBase64(text: string): Either<DecodeError, string> {
     }
 }
 
+/**
+ * The leaked string is retyped by hand from a video, where l/1/I and O/0 look alike, so
+ * compare it to the real payload with lookalikes folded together (and padding, quotes,
+ * whitespace and URL-encoding ignored). True only for the leak, never for other input.
+ */
+export function isLeakPayload(input: string): boolean {
+    let text = input.trim().replace(/^["'`\u2018\u2019\u201c\u201d]+|["'`\u2018\u2019\u201c\u201d]+$/g, "").trim()
+    try {
+        text = decodeURIComponent(text)
+    } catch(e) {}
+    text = text.trim()
+    if(/^vg:\/\//i.test(text)) {
+        text = stripScheme("vg://" + text.substring(5))
+    }
+    const fold = (s: string) => s
+        .replace(/=+$/, "")
+        .replace(/-/g, "+").replace(/_/g, "/")
+        .replace(/[1lI|]/g, "1")
+        .replace(/[0Oo]/g, "0")
+    return text !== "" && fold(text) === fold(btoa(Arg.LEAK_PHRASE))
+}
+
 export type Decoded = { encoding: "base64" | "rot13", text: string }
 
 export function autoDecode(input: string, force?: "base64" | "rot13"): Either<DecodeError, Decoded> {

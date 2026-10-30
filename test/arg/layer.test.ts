@@ -47,6 +47,28 @@ describe("the side door", () => {
     expect((await run(new Decode(), ["-r", ...rot13(Arg.LEAK_PHRASE).split(" ")])).out).toContain("side door")
   })
 
+  it("decode forgives lookalikes in a hand-typed leak string", async () => {
+    const opens = async (input: string) => {
+      const { code, out } = await run(new Decode(), [input])
+      expect(code).toBe(0)
+      expect(out.split("\n")[0]).toBe(Arg.LEAK_PHRASE)
+      expect(out).toContain("handshake accepted")
+      expect(out).toContain(`href="${entryHash()}"`)
+    }
+    expect(leakString()).toContain("TElT")
+    await opens("vg://VEhFIENJVFkgSVMgTE1TVEVOSU5H") // 1 for l: what matt typed on his phone
+    await opens(leakString().replace("TElT", "TEIT")) // I for l
+    await opens(leakString().replace("VEVOSU5H", "VEV0SU5H")) // 0 for O
+    await opens(`"${leakString()}=" `) // quotes, padding, whitespace
+    await opens(encodeURIComponent(leakString())) // pasted URL-encoded
+  })
+
+  it("control: a lookalike-free non-leak string still decodes normally", async () => {
+    const { out } = await run(new Decode(), ["vg://" + btoa("THE CITY IS SLEEPING")])
+    expect(out).toBe("THE CITY IS SLEEPING")
+    expect(out).not.toContain("handshake")
+  })
+
   it("control: other strings decode without opening anything", async () => {
     const { out } = await run(new Decode(), [btoa("hello there")])
     expect(out).toBe("hello there")

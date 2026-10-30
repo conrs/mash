@@ -1,7 +1,7 @@
 import { Command } from "./baseCommand";
 import { Stream } from "../util/stream";
-import { Either } from "../util/either";
-import { Layer, autoDecode, entryHash, entryUrl, isLeakPhrase, phraseFragment, Arg } from "../arg/layer";
+import { Either, Right } from "../util/either";
+import { Layer, autoDecode, entryHash, entryUrl, isLeakPayload, isLeakPhrase, phraseFragment, Arg } from "../arg/layer";
 import { writeText } from "./io";
 
 // Decoded text is pasted from elsewhere; never let it become markup.
@@ -19,7 +19,9 @@ export class Decode extends Command {
       return 1
     }
 
-    const decodedEither = autoDecode(input, flag === "-b" ? "base64" : flag === "-r" ? "rot13" : undefined)
+    const decodedEither = flag !== "-r" && isLeakPayload(input) ?
+      Right({ encoding: "base64" as const, text: Arg.LEAK_PHRASE }) :
+      autoDecode(input, flag === "-b" ? "base64" : flag === "-r" ? "rot13" : undefined)
     if(Either.isLeft(decodedEither)) {
       writeText(stdout, `decode: ${Either.getValue(decodedEither).message}`)
       return 1

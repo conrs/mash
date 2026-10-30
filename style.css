@@ -20,11 +20,17 @@ body {
   background-color: black;
 }
 
+/* The filler must wrap exactly where #console_output does, so same width and same white-space. */
+#cursor_container {
+  width: 95vw;
+}
+
 #cursor_text_filler {
   opacity: 0.0;
   width: 95vw;
   display: inline;
-  white-space: pre-wrap;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
   z-index:1;
   pointer-events: none;
 }
@@ -41,7 +47,8 @@ body {
   position: absolute;
   width: 95vw;
   top: 0px;
-  white-space: pre-wrap;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
   z-index: 5; /* ensure text selectable */
   background-color:black;
 }

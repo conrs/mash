@@ -18,7 +18,7 @@ export function startNudges(output: HTMLElement, cursor: HTMLElement, random: ()
     }
     later(tint, 6000 + random() * 10000)
 
-    // A character: one jitter every 20 to 60 s, 90-180 ms, then exactly what was there.
+    // A character: one jitter every 20 to 60 s, 350-600 ms, then exactly what was there.
     const jitter = () => {
         try {
             if(!reduce && !inside()) {
@@ -35,7 +35,7 @@ export function startNudges(output: HTMLElement, cursor: HTMLElement, random: ()
                     const glyph = GLYPHS[Math.floor(random() * GLYPHS.length)]
                     const altered = text.slice(0, at) + glyph + text.slice(at + 1)
                     node.data = altered
-                    later(() => { if(node.data === altered) node.data = text }, 90 + random() * 90)
+                    later(() => { if(node.data === altered) node.data = text }, 350 + random() * 250)
                 }
             }
         } catch(e) {}

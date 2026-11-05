@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matt Connors</title>
+<meta name="description" content="I build Betacade, playtests for web games, and let an AI run my week.">
+<meta name="theme-color" content="#111318">
+<link rel="canonical" href="https://con.rs/hi/">
+<meta property="og:type" content="profile">
+<meta property="og:title" content="Matt Connors">
+<meta property="og:description" content="I build Betacade, playtests for web games, and let an AI run my week.">
+<meta property="og:url" content="https://con.rs/hi/">
+<meta property="og:image" content="https://con.rs/hi/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two cyan eyes on a dark grid, and the name Matt Connors">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Matt Connors">
+<meta name="twitter:description" content="I build Betacade, playtests for web games, and let an AI run my week.">
+<meta name="twitter:image" content="https://con.rs/hi/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23111318'/%3E%3Crect x='19' y='19' width='8' height='22' rx='4' fill='%2322d3ee'/%3E%3Crect x='37' y='19' width='8' height='22' rx='4' fill='%2322d3ee'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #111318;
+  --cy: #22d3ee;
+  --cream: #f4ead5;
+  --dim: rgba(244, 234, 213, .64);
+  --line: rgba(34, 211, 238, .28);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow-x: clip; }
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--cream);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(34, 211, 238, .11), transparent 70%),
+    linear-gradient(rgba(34, 211, 238, .055) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, rgba(34, 211, 238, .055) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+/* The column sits above the flying face but lets clicks fall through to it; only the links take them. */
+.wrap {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 44px) 16px calc(env(safe-area-inset-bottom) + 28px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.wrap a { pointer-events: auto; }
+.slot { width: 112px; height: 112px; margin-bottom: 22px; border-radius: 50%; border: 1px dashed transparent; transition: border-color .6s; }
+.slot.away { border-color: rgba(34, 211, 238, .2); }
+
+#ripples { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+#face {
+  --h: 188;
+  --eye: hsl(var(--h) 84% 53%);
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+#face.free { position: fixed; left: 0; top: 0; z-index: 1; will-change: transform; }
+#face.held { z-index: 3; cursor: grabbing; }
+.body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #1a1f27, #111318 70%);
+  border: 1px solid hsl(var(--h) 84% 53% / .38);
+  box-shadow: 0 0 34px hsl(var(--h) 84% 53% / .22), inset 0 0 18px rgba(0, 0, 0, .5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .4s, box-shadow .4s, transform .12s ease-out;
+}
+.eyes {
+  display: flex;
+  gap: 22px;
+  transform: translate(var(--lx, 0px), var(--ly, 0px));
+  transition: transform .25s ease-out;
+}
+/* Moods are the eye pills clipped, as in the app's faces: happy keeps the top half, bored the bottom half,
+   angry and sad the bottom two thirds under a cut tilted 22 degrees (in toward the nose for angry, out for sad). */
+.eyes i {
+  --clip: polygon(-150% -50%, 250% -50%, 250% 150%, -150% 150%);
+  display: block;
+  width: 15px;
+  height: 32px;
+  border-radius: 99px;
+  background: var(--eye);
+  box-shadow: 0 0 14px var(--eye), 0 0 3px var(--eye);
+  clip-path: var(--clip);
+  transition: transform .07s, scale .15s ease-out, clip-path .18s ease-out, background .4s, box-shadow .4s;
+}
+#face.m-happy .eyes i { --clip: polygon(-150% -50%, 250% -50%, 250% 50%, -150% 50%); }
+#face.m-bored .eyes i { --clip: polygon(-150% 50%, 250% 50%, 250% 150%, -150% 150%); }
+#face.m-angry .eyes i:first-child, #face.m-sad .eyes i:last-child { --clip: polygon(-150% -4.6%, 250% 71.2%, 250% 150%, -150% 150%); }
+#face.m-angry .eyes i:last-child, #face.m-sad .eyes i:first-child { --clip: polygon(-150% 71.2%, 250% -4.6%, 250% 150%, -150% 150%); }
+#face.m-surprised .eyes i { scale: 1.1 1.16; }
+#face.m-angry { --eye: hsl(var(--h) 90% 62%); }
+#face.blink .eyes i { transform: scaleY(.1); }
+#face.held .body { animation: jiggle .32s ease-in-out infinite; }
+#face.squash-x .body { transform: scale(.8, 1.14); }
+#face.squash-y .body { transform: scale(1.14, .8); }
+#face.dizzy .eyes i { animation: wob .42s linear infinite; }
+#face.dizzy .eyes i:last-child { animation-direction: reverse; }
+@keyframes jiggle { 0%, 100% { rotate: 0deg; } 25% { rotate: -4deg; } 75% { rotate: 4deg; } }
+@keyframes wob { 0% { translate: 0 -3px; } 25% { translate: 3px 0; } 50% { translate: 0 3px; } 75% { translate: -3px 0; } 100% { translate: 0 -3px; } }
+.sweat {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  width: 15px;
+  height: 22px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .25s, transform .25s;
+}
+#face.sweating .sweat { opacity: 1; transform: none; animation: drip 1.1s ease-in-out infinite; }
+@keyframes drip { 50% { translate: 0 3px; } }
+.say {
+  position: absolute;
+  left: 72%;
+  top: -16px;
+  padding: 2px 8px;
+  border-radius: 9px;
+  background: rgba(17, 19, 24, .85);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+  rotate: -8deg;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+#face.saying .say { opacity: 1; }
+
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 8.4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  font-weight: 750;
+  color: var(--cream);
+}
+.tag {
+  margin: 10px 0 26px;
+  max-width: 34ch;
+  color: var(--dim);
+  font-size: 16.5px;
+  text-wrap: balance;
+}
+.tag b { color: var(--cy); font-weight: 600; }
+
+.links { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 10px 14px 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(17, 19, 24, .74);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  color: var(--cream);
+  text-decoration: none;
+  text-align: left;
+  transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+}
+.btn:hover, .btn:focus-visible {
+  border-color: var(--cy);
+  background: rgba(34, 211, 238, .08);
+  box-shadow: 0 0 22px rgba(34, 211, 238, .14);
+  outline: none;
+}
+.btn:active { transform: scale(.985); }
+.btn svg { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn .ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--cy);
+  background: rgba(34, 211, 238, .08);
+}
+.btn .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.btn strong { font-weight: 650; font-size: 16px; }
+.btn small { color: var(--dim); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn .go { width: 16px; height: 16px; color: var(--dim); }
+
+.hint {
+  margin: 22px 0 0;
+  color: rgba(244, 234, 213, .4);
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.foot { margin-top: 10px; font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.foot a { color: rgba(34, 211, 238, .7); text-decoration: none; padding: 8px; }
+.foot a:hover { color: var(--cy); }
+
+@media (prefers-reduced-motion: reduce) {
+  #face { cursor: default; }
+  .hint { display: none; }
+  .eyes, .eyes i, .btn, .body { transition: none; }
+  #ripples, .sweat, .say { display: none; }
+}
+@media (min-width: 700px) {
+  .wrap { padding-top: 52px; }
+}
+</style>
+</head>
+<body>
+<canvas id="ripples" aria-hidden="true"></canvas>
+<main class="wrap">
+  <div class="slot" id="slot">
+    <div id="face" role="img" aria-label="Two cyan eyes, watching"><div class="body"><span class="eyes"><i></i><i></i></span><svg class="sweat" viewBox="394 108 72 110" aria-hidden="true"><path d="M430 112C430 112 396 160 396 182A34 34 0 0 0 464 182C464 160 430 112 430 112Z" fill="#9be7f5"/><path d="M414 178A18 18 0 0 0 424 196" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".8"/></svg></div><span class="say">wheee</span></div>
+  </div>
+  <h1>Matt Connors</h1>
+  <p class="tag">I build <b>Betacade</b>, playtests for web games, and let an AI run my week.</p>
+  <nav class="links" id="links" aria-label="Links">
+    <noscript>
+      <a class="btn" href="https://www.linkedin.com/in/conrs"><span class="txt"><strong>LinkedIn</strong></span></a>
+      <a class="btn" href="https://github.com/conrs"><span class="txt"><strong>GitHub</strong></span></a>
+      <a class="btn" href="https://x.com/matt_conrs"><span class="txt"><strong>X</strong></span></a>
+      <a class="btn" href="https://betacade.com"><span class="txt"><strong>Betacade</strong></span></a>
+      <a class="btn" href="https://play.betacade.com/g/mattflix"><span class="txt"><strong>Mattflix</strong></span></a>
+      <a class="btn" href="https://calendar.app.google/i2pjJ6eTgBKUKFoe7"><span class="txt"><strong>Book time</strong></span></a>
+      <a class="btn" href="mailto:matt@con.rs"><span class="txt"><strong>Email</strong></span></a>
+    </noscript>
+  </nav>
+  <p class="hint">psst: the face can be thrown.</p>
+  <p class="foot"><a href="/">~/con.rs</a></p>
+</main>
+<script>
+(function () {
+  // One line per button. To add Instagram: fill in the handle and uncomment.
+  var LINKS = [
+    { label: "LinkedIn", sub: "/in/conrs", href: "https://www.linkedin.com/in/conrs", icon: "briefcase" },
+    { label: "GitHub", sub: "conrs", href: "https://github.com/conrs", icon: "code" },
+    { label: "X", sub: "@matt_conrs", href: "https://x.com/matt_conrs", icon: "chat" },
+    { label: "Betacade", sub: "playtests for web games", href: "https://betacade.com", icon: "pad" },
+    { label: "Mattflix", sub: "my little TV channel", href: "https://play.betacade.com/g/mattflix", icon: "tv" },
+    { label: "Book time", sub: "pick a slot on my calendar", href: "https://calendar.app.google/i2pjJ6eTgBKUKFoe7", icon: "cal" },
+    { label: "Email", sub: "matt@con.rs", href: "mailto:matt@con.rs", icon: "mail" },
+    // { label: "Instagram", sub: "@HANDLE", href: "https://www.instagram.com/HANDLE", icon: "cam" },
+  ];
+
+  var ICONS = {
+    briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7M3 12.5h18"/>',
+    code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4.5l-3 15"/>',
+    pad: '<rect x="2" y="7" width="20" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r=".9"/><circle cx="18" cy="13.8" r=".9"/>',
+    tv: '<rect x="2.5" y="6.5" width="19" height="13.5" rx="2.5"/><path d="M8.5 2.5L12 6l3.5-3.5M10.5 10.5v5.5l4.5-2.75z"/>',
+    cal: '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M14 14h2M8 17.5h2"/>',
+    mail: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6.5L21 7"/>',
+    chat: '<path d="M20.5 11.5a8 8 0 0 1-11.7 7.1L3.5 20.5l1.8-5A8 8 0 1 1 20.5 11.5z"/>',
+    cloud: '<path d="M7 19h10.5a4 4 0 0 0 .6-8A6 6 0 0 0 6.5 9.6 4.7 4.7 0 0 0 7 19z"/>',
+    cam: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/>',
+    go: '<path d="M7 17L17 7M9 7h8v8"/>'
+  };
+  function svg(name, cls) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"' + (cls ? ' class="' + cls + '"' : "") + ">" + ICONS[name] + "</svg>";
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  var nav = document.getElementById("links");
+  nav.innerHTML = LINKS.map(function (l) {
+    var ext = l.href.indexOf("mailto:") !== 0;
+    return '<a class="btn" href="' + esc(l.href) + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + ">" +
+      '<span class="ic">' + svg(l.icon) + "</span>" +
+      '<span class="txt"><strong>' + esc(l.label) + "</strong><small>" + esc(l.sub) + "</small></span>" +
+      svg("go", "go") + "</a>";
+  }).join("");
+
+  // The face: blinks, watches the pointer, can be thrown (and has feelings about it), and wanders off when nobody's around.
+  var face = document.getElementById("face");
+  var slot = document.getElementById("slot");
+  var eyes = face.querySelector(".eyes");
+  var still = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  var IDLE_MS = 8000;
+  var HOME_HUE = 188;
+
+  var mode = "home"; // home | drag | fly | dvd | back
+  var x = 0, y = 0, vx = 0, vy = 0, settleAt = 0, raf = 0, last = 0, idleT = 0;
+  var grab = { ox: 0, oy: 0, moved: 0, samples: [] };
+
+  // Moods. The base mood follows what the face is doing; angry and dizzy are short flashes over it.
+  var mood = "engaged", angryUntil = 0, dizzyUntil = 0, sweaty = false, throws = [], hits = [], moodT = 0;
+  function now() { return performance.now(); }
+  function render() {
+    if (still.matches) return;
+    var t = now(), m = t < angryUntil ? "angry" : mood;
+    ["happy", "bored", "angry", "sad", "surprised"].forEach(function (k) { face.classList.toggle("m-" + k, k === m); });
+    face.classList.toggle("dizzy", t < dizzyUntil);
+    face.classList.toggle("sweating", sweaty);
+    face.classList.toggle("saying", m === "happy" && mode === "fly");
+    clearTimeout(moodT);
+    var next = Math.min(angryUntil > t ? angryUntil : Infinity, dizzyUntil > t ? dizzyUntil : Infinity);
+    if (next < Infinity) moodT = setTimeout(render, next - t + 5);
+  }
+  function setMood(m) { mood = m; render(); }
+  function flash(cls, ms) {
+    face.classList.add(cls);
+    setTimeout(function () { face.classList.remove(cls); }, ms);
+  }
+
+  // Ripples through the grid: one canvas, drawn only while a ripple is alive.
+  var cv = document.getElementById("ripples"), cx2 = cv.getContext && cv.getContext("2d"), waves = [], wraf = 0;
+  var GRID = 28, WAVE_S = 1100, WAVE_V = 0.62; // grid pitch (matches the CSS), life in ms, px per ms
+  function ripple(px, py, strength) {
+    if (still.matches || !cx2) return;
+    waves.push({ x: px, y: py, t: now(), s: Math.max(0.12, Math.min(1, strength)) });
+    if (waves.length > 8) waves.shift();
+    if (!wraf) wraf = requestAnimationFrame(drawWaves);
+  }
+  function drawWaves(t) {
+    t = t || now();
+    var dpr = window.devicePixelRatio || 1, W = document.documentElement.clientWidth, H = window.innerHeight;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    cx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx2.clearRect(0, 0, W, H);
+    waves = waves.filter(function (w) { return t - w.t < WAVE_S; });
+    if (!waves.length) { wraf = 0; return; }
+    var live = waves.map(function (w) { var a = t - w.t; return { x: w.x, y: w.y, r: a * WAVE_V, k: w.s * (1 - a / WAVE_S), wd: 44 + a * 0.06 }; });
+    // Displacement and glow at a point: a raised-cosine band around each ring, pushing outward.
+    function at(px, py, out) {
+      var dx = 0, dy = 0, g = 0;
+      for (var i = 0; i < live.length; i++) {
+        var w = live[i], ex = px - w.x, ey = py - w.y, d = Math.sqrt(ex * ex + ey * ey) || 1, u = (d - w.r) / w.wd;
+        if (u > -1 && u < 1) { var c = Math.cos(u * Math.PI / 2), a = w.k * c * c; g += a; var push = Math.sin(u * Math.PI) * -3.5 * w.k * c; dx += ex / d * push; dy += ey / d * push; }
+      }
+      out[0] = px + dx; out[1] = py + dy; out[2] = Math.min(1, g);
+    }
+    var B = 6, paths = [], p = [0, 0, 0], q = [0, 0, 0], oy = -(window.scrollY % GRID), STEP = 7;
+    for (var b = 0; b < B; b++) paths.push(new Path2D());
+    function line(x0, y0, x1, y1) {
+      var len = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(len / STEP);
+      at(x0, y0, p);
+      for (var i = 1; i <= n; i++) {
+        var f = i / n; at(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, q);
+        var g = (p[2] + q[2]) / 2;
+        if (g > 0.015) { var path = paths[Math.min(B - 1, Math.floor(g * B))]; path.moveTo(p[0], p[1]); path.lineTo(q[0], q[1]); }
+        p[0] = q[0]; p[1] = q[1]; p[2] = q[2];
+      }
+    }
+    for (var gx = 0; gx <= W; gx += GRID) line(gx + 0.5, 0, gx + 0.5, H);
+    for (var gy = oy; gy <= H; gy += GRID) line(0, gy + 0.5, W, gy + 0.5);
+    cx2.lineWidth = 1.2;
+    for (b = 0; b < B; b++) { cx2.strokeStyle = "rgba(34,211,238," + (0.12 + 0.7 * (b + 1) / B).toFixed(3) + ")"; cx2.stroke(paths[b]); }
+    wraf = requestAnimationFrame(drawWaves);
+  }
+
+  function setHue(h) { face.style.setProperty("--h", Math.round(h)); }
+  function nudgeHue() { setHue(HOME_HUE + (Math.random() * 2 - 1) * 38); }
+  function size() { return face.offsetWidth || 112; }
+  function bounds() {
+    var s = size();
+    return { w: Math.max(0, document.documentElement.clientWidth - s), h: Math.max(0, window.innerHeight - s) };
+  }
+  function place() { face.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0)"; }
+
+  function detach() {
+    if (mode !== "home") return;
+    var r = slot.getBoundingClientRect();
+    x = r.left; y = r.top;
+    face.classList.add("free");
+    slot.classList.add("away");
+    document.body.appendChild(face);
+    eyes.style.setProperty("--lx", "0px");
+    eyes.style.setProperty("--ly", "0px");
+    place();
+  }
+  function attach() {
+    slot.appendChild(face);
+    slot.classList.remove("away");
+    face.classList.remove("free", "held");
+    face.style.transform = "";
+    setHue(HOME_HUE);
+    mode = "home";
+    var r = slot.getBoundingClientRect();
+    ripple(r.left + r.width / 2, r.top + r.height / 2, 0.35);
+    setMood("engaged");
+    if (sweaty) setTimeout(function () { sweaty = false; render(); }, 1800);
+  }
+  function goHome() {
+    mode = "back"; settleAt = 0;
+    setMood(sweaty ? "sad" : "engaged");
+    run();
+  }
+
+  function onHit(axis, speed, t) {
+    var half = size() / 2;
+    ripple(x + half + (axis === "x" ? (vx > 0 ? -half : half) : 0), y + half + (axis === "y" ? (vy > 0 ? -half : half) : 0), speed / 1500);
+    if (mode === "dvd" || speed < 380) return;
+    flash(axis === "x" ? "squash-x" : "squash-y", 150);
+    angryUntil = t + 250;
+    hits.push(t);
+    hits = hits.filter(function (h) { return t - h < 1600; });
+    if (hits.length >= 3) dizzyUntil = t + 1300;
+    render();
+  }
+
+  function step(dt, t) {
+    var b = bounds();
+    if (mode === "fly" || mode === "dvd") {
+      var e = mode === "fly" ? 0.78 : 1, hx = 0, hy = 0;
+      x += vx * dt; y += vy * dt;
+      if (x < 0) { x = 0; hx = Math.abs(vx); vx = Math.abs(vx) * e; }
+      if (x > b.w) { x = b.w; hx = Math.abs(vx); vx = -Math.abs(vx) * e; }
+      if (y < 0) { y = 0; hy = Math.abs(vy); vy = Math.abs(vy) * e; }
+      if (y > b.h) { y = b.h; hy = Math.abs(vy); vy = -Math.abs(vy) * e; }
+      if (hx || hy) {
+        if (mode === "dvd" || Math.hypot(vx, vy) > 120) nudgeHue();
+        onHit(hx >= hy ? "x" : "y", Math.max(hx, hy), t);
+      }
+      if (mode === "fly") {
+        var k = Math.exp(-1.15 * dt);
+        vx *= k; vy *= k;
+        var sp = Math.hypot(vx, vy);
+        if (mood === "happy" && sp < 260) setMood("engaged");
+        if (sp < 45) {
+          if (!settleAt) settleAt = t + 900;
+          else if (t > settleAt) goHome();
+        }
+      }
+    } else if (mode === "back") {
+      var r = slot.getBoundingClientRect(), kk = 1 - Math.exp(-6.5 * dt);
+      x += (r.left - x) * kk; y += (r.top - y) * kk;
+      if (Math.abs(r.left - x) < 0.6 && Math.abs(r.top - y) < 0.6) { attach(); return; }
+    }
+    place();
+  }
+  function tick(t) {
+    var dt = Math.min(0.05, Math.max(0, (t - last) / 1000));
+    last = t;
+    step(dt, t);
+    raf = (mode === "fly" || mode === "dvd" || mode === "back") ? requestAnimationFrame(tick) : 0;
+  }
+  function run() { if (!raf) { last = now(); raf = requestAnimationFrame(tick); } }
+
+  function startDvd() {
+    if (still.matches || document.hidden || (mode !== "home" && mode !== "back")) return;
+    if (mode === "home") detach();
+    mode = "dvd";
+    setMood("bored");
+    var sp = Math.min(160, Math.max(90, document.documentElement.clientWidth * 0.3));
+    vx = sp * 0.8 * (Math.random() < 0.5 ? -1 : 1);
+    vy = sp * 0.6 * (Math.random() < 0.5 ? -1 : 1);
+    run();
+  }
+  function poke() {
+    clearTimeout(idleT);
+    if (mode === "dvd") goHome();
+    if (!still.matches) idleT = setTimeout(startDvd, IDLE_MS);
+  }
+  ["pointermove", "pointerdown", "keydown", "wheel", "scroll", "touchstart"].forEach(function (ev) {
+    window.addEventListener(ev, poke, { passive: true });
+  });
+
+  face.addEventListener("pointerdown", function (e) {
+    if (still.matches) return;
+    e.preventDefault();
+    detach();
+    mode = "drag";
+    face.classList.add("held");
+    setMood("surprised");
+    try { face.setPointerCapture(e.pointerId); } catch (_) {}
+    grab.ox = e.clientX - x; grab.oy = e.clientY - y; grab.moved = 0;
+    grab.samples = [{ t: e.timeStamp, x: e.clientX, y: e.clientY }];
+  });
+  face.addEventListener("pointermove", function (e) {
+    if (mode !== "drag") return;
+    var b = bounds();
+    x = Math.min(b.w, Math.max(0, e.clientX - grab.ox));
+    y = Math.min(b.h, Math.max(0, e.clientY - grab.oy));
+    grab.moved = Math.max(grab.moved, Math.hypot(e.clientX - grab.samples[0].x, e.clientY - grab.samples[0].y));
+    grab.samples.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
+    while (grab.samples.length > 2 && e.timeStamp - grab.samples[0].t > 90) grab.samples.shift();
+    place();
+  });
+  function release(e) {
+    if (mode !== "drag") return;
+    face.classList.remove("held");
+    var s = grab.samples, a = s[0], z = s[s.length - 1], dt = (z.t - a.t) / 1000;
+    if (grab.moved < 6) {
+      // A tap: a little hop in a random direction.
+      var ang = Math.random() * Math.PI * 2;
+      vx = Math.cos(ang) * 520; vy = Math.sin(ang) * 520;
+    } else if (dt > 0.004 && e.timeStamp - z.t < 120) {
+      vx = (z.x - a.x) / dt; vy = (z.y - a.y) / dt;
+    } else { vx = 0; vy = 0; }
+    var sp = Math.hypot(vx, vy), cap = 3200, t = now();
+    if (sp > cap) { vx *= cap / sp; vy *= cap / sp; sp = cap; }
+    mode = "fly"; settleAt = 0;
+    if (grab.moved >= 6) {
+      throws.push(t);
+      throws = throws.filter(function (h) { return t - h < 20000; });
+      if (throws.length >= 5) sweaty = true;
+    }
+    setMood(sp > 600 ? "happy" : "engaged");
+    run();
+  }
+  face.addEventListener("pointerup", release);
+  face.addEventListener("pointercancel", release);
+
+  // The eyes follow the pointer a little while the face is at home.
+  window.addEventListener("pointermove", function (e) {
+    if (mode !== "home" || still.matches) return;
+    var r = face.getBoundingClientRect();
+    var dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), d = Math.hypot(dx, dy) || 1;
+    var m = Math.min(5, d / 40);
+    eyes.style.setProperty("--lx", (dx / d * m).toFixed(1) + "px");
+    eyes.style.setProperty("--ly", (dy / d * m * 0.7).toFixed(1) + "px");
+  }, { passive: true });
+
+  function blink() { flash("blink", 130); }
+  (function schedule() {
+    setTimeout(function () {
+      if (!still.matches && mode !== "drag") {
+        blink();
+        if (Math.random() < 0.22) setTimeout(blink, 260);
+      }
+      schedule();
+    }, 2400 + Math.random() * 3600);
+  })();
+
+  window.addEventListener("resize", function () {
+    if (mode === "home") return;
+    var b = bounds();
+    x = Math.min(b.w, x); y = Math.min(b.h, y);
+    place();
+  });
+  if (still.addEventListener) still.addEventListener("change", function () {
+    if (!still.matches) return;
+    if (mode !== "home") attach();
+    mood = "engaged"; angryUntil = dizzyUntil = 0; sweaty = false; waves = [];
+    face.className = face.className.replace(/\b(m-\w+|dizzy|sweating|saying)\b/g, "").trim();
+  });
+
+  poke();
+})();
+</script>
+</body>
+</html>

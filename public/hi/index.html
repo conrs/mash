@@ -466,12 +466,16 @@ h1 {
     vy = sp * 0.6 * (Math.random() < 0.5 ? -1 : 1);
     run();
   }
-  function poke() {
+  function poke(e) {
     clearTimeout(idleT);
-    if (mode === "dvd") goHome();
+    // Scrolling only counts as being here: it never calls the face home (matt: "Scroll moves you ... and it shouldn't").
+    // A finger that scrolls gets pointercancel, not pointerup, so touch wakes it only on a tap.
+    var touch = e && e.pointerType && e.pointerType !== "mouse";
+    var wakes = e && (e.type === "keydown" || e.type === "pointerup" || (!touch && (e.type === "pointermove" || e.type === "pointerdown")));
+    if (mode === "dvd" && wakes) goHome();
     if (!still.matches) idleT = setTimeout(startDvd, IDLE_MS);
   }
-  ["pointermove", "pointerdown", "keydown", "wheel", "scroll", "touchstart"].forEach(function (ev) {
+  ["pointermove", "pointerdown", "pointerup", "keydown", "wheel", "scroll", "touchstart"].forEach(function (ev) {
     window.addEventListener(ev, poke, { passive: true });
   });
 

@@ -1,0 +1,18 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Connors;Matt;;;
+FN:Matt Connors
+TITLE:Founder
+ORG:Betacade
+EMAIL;TYPE=INTERNET,PREF:matt@con.rs
+URL:https://con.rs/hi/
+item1.URL:https://betacade.com
+item1.X-ABLabel:Betacade
+item2.URL:https://www.linkedin.com/in/conrs
+item2.X-ABLabel:LinkedIn
+X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/conrs
+X-SOCIALPROFILE;TYPE=twitter:https://x.com/matt_conrs
+X-SOCIALPROFILE;TYPE=github:https://github.com/conrs
+NOTE:Saved from con.rs/hi
+X-AGENT-ID:0001
+END:VCARD

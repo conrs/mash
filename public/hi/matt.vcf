@@ -10,6 +10,14 @@ item1.URL:https://betacade.com
 item1.X-ABLabel:Betacade
 item2.URL:https://www.linkedin.com/in/conrs
 item2.X-ABLabel:LinkedIn
+item3.URL:https://play.betacade.com/g/mattflix
+item3.X-ABLabel:Mattflix
+item4.URL:https://calendar.app.google/i2pjJ6eTgBKUKFoe7
+item4.X-ABLabel:Book time
+item5.URL:https://x.com/matt_conrs
+item5.X-ABLabel:X
+item6.URL:https://github.com/conrs
+item6.X-ABLabel:GitHub
 X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/conrs
 X-SOCIALPROFILE;TYPE=twitter:https://x.com/matt_conrs
 X-SOCIALPROFILE;TYPE=github:https://github.com/conrs

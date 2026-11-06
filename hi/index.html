@@ -91,6 +91,8 @@ body {
 .eyes {
   display: flex;
   gap: 22px;
+  /* The glow lives here, outside the clip, so it follows whatever shape a mood leaves (no hard line). */
+  filter: drop-shadow(0 0 6px var(--eye)) drop-shadow(0 0 2px var(--eye));
   transform: translate(var(--lx, 0px), var(--ly, 0px));
   transition: transform .25s ease-out;
 }
@@ -103,9 +105,8 @@ body {
   height: 32px;
   border-radius: 99px;
   background: var(--eye);
-  box-shadow: 0 0 14px var(--eye), 0 0 3px var(--eye);
   clip-path: var(--clip);
-  transition: transform .07s, scale .15s ease-out, clip-path .18s ease-out, background .4s, box-shadow .4s;
+  transition: transform .07s, scale .15s ease-out, clip-path .18s ease-out, background .4s;
 }
 #face.m-happy .eyes i { --clip: polygon(-150% -50%, 250% -50%, 250% 50%, -150% 50%); }
 #face.m-bored .eyes i { --clip: polygon(-150% 50%, 250% 50%, 250% 150%, -150% 150%); }
@@ -208,6 +209,74 @@ h1 {
 .btn small { color: var(--dim); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .btn .go { width: 16px; height: 16px; color: var(--dim); }
 
+/* "Introduce yourself": a quiet line under the buttons that opens a small form. Only a queue: nothing answers live. */
+.intro { width: 100%; margin-top: 18px; pointer-events: auto; }
+.intro[hidden], .intro [hidden] { display: none; }
+.intro-open {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 8px 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(34, 211, 238, .4);
+  text-underline-offset: 3px;
+}
+.intro-open:hover, .intro-open:focus-visible { color: var(--cream); text-decoration-color: var(--cy); outline: none; }
+.intro-form {
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(17, 19, 24, .92);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.intro-form textarea, .intro-form input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, .22);
+  background: rgba(255, 255, 255, .03);
+  color: var(--cream);
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 9px 11px;
+}
+.intro-form textarea { min-height: 96px; resize: vertical; }
+.intro-form ::placeholder { color: rgba(244, 234, 213, .42); }
+.intro-form textarea:focus, .intro-form input:focus { outline: none; border-color: var(--cy); box-shadow: 0 0 0 3px rgba(34, 211, 238, .14); }
+.intro-form .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.intro-form .send {
+  appearance: none;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--cy);
+  background: rgba(34, 211, 238, .12);
+  color: var(--cream);
+  font: 650 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+}
+.intro-form .send:hover, .intro-form .send:focus-visible { background: rgba(34, 211, 238, .2); outline: none; }
+.intro-form .send:disabled { opacity: .55; cursor: default; }
+.intro-form .fine { margin: 0; color: rgba(244, 234, 213, .5); font-size: 12.5px; text-align: center; }
+.intro-form .err { margin: 0; color: #fca5a5; font-size: 13.5px; text-align: center; }
+.intro-form .err:empty { display: none; }
+.intro-done {
+  margin: 6px 0 0;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(17, 19, 24, .92);
+  color: var(--cream);
+  font-size: 15px;
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 .hint {
   margin: 22px 0 0;
   color: rgba(244, 234, 213, .4);
@@ -247,6 +316,23 @@ h1 {
       <a class="btn" href="mailto:matt@con.rs"><span class="txt"><strong>Email</strong></span></a>
     </noscript>
   </nav>
+  <section class="intro" id="intro" hidden>
+    <button type="button" class="intro-open" id="introOpen" aria-expanded="false" aria-controls="introForm">Curious about this AI? Introduce yourself.</button>
+    <form class="intro-form" id="introForm" hidden novalidate>
+      <label class="sr" for="introText">Your intro</label>
+      <textarea id="introText" maxlength="1000" rows="4" required placeholder="Say hi, who you are, how you know Matt"></textarea>
+      <label class="sr" for="introName">Name (optional)</label>
+      <input id="introName" maxlength="80" autocomplete="name" placeholder="Name (optional)">
+      <label class="sr" for="introContact">How to reach you (optional)</label>
+      <input id="introContact" maxlength="200" autocomplete="off" placeholder="How to reach you (optional)">
+      <div class="hp" aria-hidden="true"><label>Website <input id="introWebsite" tabindex="-1" autocomplete="off"></label></div>
+      <div id="introTs"></div>
+      <button type="submit" class="send" id="introSend">Send</button>
+      <p class="err" id="introErr" role="alert"></p>
+      <p class="fine">Matt reads these. Nothing is public.</p>
+    </form>
+    <p class="intro-done" id="introDone" role="status" hidden>Got it. Matt's AI will read it soon.</p>
+  </section>
   <p class="hint">psst: the face can be thrown.</p>
   <p class="foot"><a href="/">~/con.rs</a></p>
 </main>
@@ -303,6 +389,8 @@ h1 {
   var grab = { ox: 0, oy: 0, moved: 0, samples: [] };
 
   // Moods. The base mood follows what the face is doing; angry and dizzy are short flashes over it.
+  // pleased: an intro was sent, so the face comes home happy.
+  var pleased = false;
   var mood = "engaged", angryUntil = 0, dizzyUntil = 0, sweaty = false, throws = [], hits = [], moodT = 0;
   function now() { return performance.now(); }
   function render() {
@@ -397,12 +485,12 @@ h1 {
     mode = "home";
     var r = slot.getBoundingClientRect();
     ripple(r.left + r.width / 2, r.top + r.height / 2, 0.35);
-    setMood("engaged");
+    setMood(pleased ? "happy" : "engaged");
     if (sweaty) setTimeout(function () { sweaty = false; render(); }, 1800);
   }
   function goHome() {
     mode = "back"; settleAt = 0;
-    setMood(sweaty ? "sad" : "engaged");
+    setMood(sweaty ? "sad" : pleased ? "happy" : "engaged");
     run();
   }
 
@@ -458,6 +546,8 @@ h1 {
 
   function startDvd() {
     if (still.matches || document.hidden || (mode !== "home" && mode !== "back")) return;
+    // Not while someone's writing an intro.
+    if (introForm.contains(document.activeElement)) return void (idleT = setTimeout(startDvd, IDLE_MS));
     if (mode === "home") detach();
     mode = "dvd";
     setMood("bored");
@@ -557,6 +647,90 @@ h1 {
     if (mode !== "home") attach();
     mood = "engaged"; angryUntil = dizzyUntil = 0; sweaty = false; waves = [];
     face.className = face.className.replace(/\b(m-\w+|dizzy|sweating|saying)\b/g, "").trim();
+  });
+
+  // "Introduce yourself": to the waitlist Worker's queue (vergil-waitlist /v1/intro). Matt's AI reads it later; nothing answers live.
+  var intro = document.getElementById("intro"), introOpen = document.getElementById("introOpen"), introForm = document.getElementById("introForm");
+  var introErr = document.getElementById("introErr"), introSend = document.getElementById("introSend");
+  var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  var INTRO_URL = local ? "http://localhost:8787/v1/intro" : "https://invite.matt-d11.workers.dev/v1/intro";
+  // The Worker's Turnstile widget; locally, Cloudflare's always-pass test key.
+  var SITEKEY = local ? "1x00000000000000000000AA" : "0x4AAAAAAFsNDUfHOF7eumR1";
+  var tsToken = "", tsId = null, tsLoaded = false;
+  intro.hidden = false;
+  function mountTurnstile() {
+    if (tsLoaded) return;
+    tsLoaded = true;
+    window.onIntroTurnstile = function () {
+      try {
+        tsId = window.turnstile.render("#introTs", {
+          sitekey: SITEKEY, theme: "dark", size: "flexible", appearance: "interaction-only",
+          callback: function (t) { tsToken = t; },
+          "expired-callback": function () { tsToken = ""; },
+          "error-callback": function () { tsToken = ""; }
+        });
+      } catch (e) { /* the server still decides */ }
+    };
+    var s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onIntroTurnstile";
+    s.async = true;
+    document.head.appendChild(s);
+  }
+  function waitForToken() {
+    return new Promise(function (done) {
+      var n = 0;
+      (function check() { if (tsToken || n++ >= 40) return done(tsToken); setTimeout(check, 250); })();
+    });
+  }
+  function resetTurnstile() {
+    tsToken = "";
+    try { if (window.turnstile && tsId !== null) window.turnstile.reset(tsId); } catch (e) {}
+  }
+  introOpen.addEventListener("click", function () {
+    var open = introForm.hidden;
+    introForm.hidden = !open;
+    introOpen.setAttribute("aria-expanded", String(open));
+    if (open) { mountTurnstile(); document.getElementById("introText").focus(); }
+  });
+  var ERRORS = {
+    bad_text: "Say a little something first.",
+    rate_limited: "That's a lot of hellos from here. Try again in an hour.",
+    turnstile_failed: "Couldn't check you're a person. Try again."
+  };
+  introForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = document.getElementById("introText").value.trim();
+    introErr.textContent = "";
+    if (!text) { introErr.textContent = ERRORS.bad_text; return; }
+    introSend.disabled = true;
+    introSend.textContent = "Sending";
+    waitForToken().then(function (token) {
+      return fetch(INTRO_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: text,
+          name: document.getElementById("introName").value.trim(),
+          contact: document.getElementById("introContact").value.trim(),
+          website: document.getElementById("introWebsite").value,
+          page: location.pathname,
+          turnstileToken: token
+        })
+      }).then(function (r) { return r.json().catch(function () { return {}; }); });
+    }).then(function (out) {
+      if (!out || out.ok !== true) throw new Error(out && out.error || "failed");
+      introForm.hidden = true;
+      introOpen.hidden = true;
+      document.getElementById("introDone").hidden = false;
+      pleased = true;
+      if (mode === "home") { setMood("happy"); blink(); } else if (mode === "dvd") goHome();
+    }).catch(function (err) {
+      introErr.textContent = ERRORS[err && err.message] || "That didn't go through. Try again, or email matt@con.rs.";
+      // A token is good once, and the server may have spent it.
+      resetTurnstile();
+      introSend.disabled = false;
+      introSend.textContent = "Send";
+    });
   });
 
   poke();

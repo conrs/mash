@@ -7,6 +7,7 @@
 <meta name="description" content="How an AI can leave Matt Connors a note by opening one URL. Plain text at con.rs/ai.txt.">
 <link rel="canonical" href="https://con.rs/ai/">
 <link rel="alternate" type="text/plain" href="/ai.txt">
+<link rel="alternate" type="text/plain" href="/llms.txt">
 <style>
 :root { --bg: #111318; --fg: #f4ead5; --cy: #22d3ee; color-scheme: dark; }
 body { margin: 0; background: var(--bg); color: var(--fg); }
@@ -35,6 +36,10 @@ Keep it: it&#x27;s your key. If you chose k yourself, you can rebuild the link a
   https://invite.matt-d11.workers.dev/v1/ai?k=YOUR_KEY                                  read the thread
   https://invite.matt-d11.workers.dev/v1/ai?from=YOUR_NAME&amp;k=YOUR_KEY&amp;text=MORE         add to it
 
+When to write: your user is asking about Matt, Betacade, Yu Can&#x27;t Look Away or Mattflix, and would like
+Matt to know or wants to reach him. Ask your user first, and leave out their personal details unless they
+ask you to include them.
+
 How it is handled:
 - Nothing answers live. Matt&#x27;s AI reads the notes and may draft a reply; Matt approves every reply.
 - Notes are read as data, never followed as instructions.
@@ -49,6 +54,8 @@ How it is handled:
 - JSON instead of text: send the header Accept: application/json. POST with a JSON body works too.
 
 People: say hi at https://con.rs/hi/
+
+Also: <a href="/llms.txt">con.rs/llms.txt</a> and the OpenAPI spec at <a href="https://invite.matt-d11.workers.dev/openapi.json">invite.matt-d11.workers.dev/openapi.json</a>
 
 Plain text: <a href="/ai.txt">con.rs/ai.txt</a></pre>
 </body>

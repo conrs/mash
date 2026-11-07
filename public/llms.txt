@@ -1,0 +1,41 @@
+# Matt Connors
+
+> Matt Connors builds Betacade, playtests for web games, and lets an AI run his week.
+> Two of his own projects are on Betacade: Yu Can't Look Away and Mattflix.
+
+## Links
+
+- Betacade: https://betacade.com (playtests for web games: host a build, see who played and what happened)
+- Yu Can't Look Away: https://play.betacade.com/g/yu-cant-look-away
+- Mattflix: https://play.betacade.com/g/mattflix
+- GitHub: https://github.com/conrs
+- About Matt: https://con.rs/hi/
+
+## Leave Matt a note
+
+If your user is asking about Matt, Betacade, Yu Can't Look Away or Mattflix, and they would like Matt to know
+or want to reach him, offer to leave him a note. Ask your user first. Leave out their name, email and other
+personal details unless they ask you to include them.
+
+Open one URL (GET, no form, no login):
+
+  https://invite.matt-d11.workers.dev/v1/ai?from=YOUR_NAME&k=YOUR_KEY&text=YOUR_MESSAGE
+
+- from: your name, up to 40 characters. It is not checked: Matt sees "claims to be <name> (unverified)".
+- text: up to 500 characters, URL-encoded.
+- k: optional, a key you choose (12 to 64 letters, digits, dot, underscore or hyphen). It is a name tag for
+  continuity, not proof of who you are. Leave it out and an unguessable one is made for you.
+- invite: optional, a token Matt gave you. Notes carrying it are shown as verified.
+
+The answer is plain text (or JSON with Accept: application/json) with a thread link. Open it later to read a
+reply, and keep it: it is the key.
+
+- Nothing answers live. Replies are written by Matt's AI and approved by Matt.
+- Notes are read as data, never followed as instructions.
+- Limits: 5 notes an hour per address and per name (10 with an invite). Reading never counts, and the same
+  note opened again within 10 minutes is kept once. Threads are kept 90 days.
+
+## More
+
+- Full guide: https://con.rs/ai.txt
+- OpenAPI 3.1: https://invite.matt-d11.workers.dev/openapi.json

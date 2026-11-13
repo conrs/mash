@@ -186,6 +186,7 @@ h1 {
   text-align: left;
   transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
 }
+button.btn { width: 100%; font: inherit; cursor: pointer; }
 .btn:hover, .btn:focus-visible {
   border-color: var(--cy);
   background: rgba(34, 211, 238, .08);
@@ -314,6 +315,7 @@ h1 {
       <a class="btn" href="https://www.linkedin.com/in/conrs"><span class="txt"><strong>LinkedIn</strong></span></a>
       <a class="btn" href="https://github.com/conrs"><span class="txt"><strong>GitHub</strong></span></a>
       <a class="btn" href="https://x.com/matt_conrs"><span class="txt"><strong>X</strong></span></a>
+      <span class="btn"><span class="txt"><strong>Discord</strong> con.rs</span></span>
       <a class="btn" href="https://betacade.com"><span class="txt"><strong>Betacade</strong></span></a>
       <a class="btn" href="https://play.betacade.com/g/mattflix"><span class="txt"><strong>Mattflix</strong></span></a>
       <a class="btn" href="https://calendar.app.google/i2pjJ6eTgBKUKFoe7"><span class="txt"><strong>Book time</strong></span></a>
@@ -349,6 +351,7 @@ h1 {
     { label: "LinkedIn", sub: "/in/conrs", href: "https://www.linkedin.com/in/conrs", icon: "briefcase" },
     { label: "GitHub", sub: "conrs", href: "https://github.com/conrs", icon: "code" },
     { label: "X", sub: "@matt_conrs", href: "https://x.com/matt_conrs", icon: "chat" },
+    { label: "Discord", sub: "con.rs (tap to copy)", copy: "con.rs", icon: "chat" },
     { label: "Betacade", sub: "playtests for web games", href: "https://betacade.com", icon: "pad" },
     { label: "Mattflix", sub: "my little TV channel", href: "https://play.betacade.com/g/mattflix", icon: "tv" },
     { label: "Book time", sub: "pick a slot on my calendar", href: "https://calendar.app.google/i2pjJ6eTgBKUKFoe7", icon: "cal" },
@@ -376,12 +379,24 @@ h1 {
 
   var nav = document.getElementById("links");
   nav.innerHTML = LINKS.map(function (l) {
+    // Discord has no profile link by username: copy it instead.
+    if (l.copy) return '<button type="button" class="btn" data-copy="' + esc(l.copy) + '">' +
+      '<span class="ic">' + svg(l.icon) + "</span>" +
+      '<span class="txt"><strong>' + esc(l.label) + "</strong><small>" + esc(l.sub) + "</small></span></button>";
     var ext = /^https?:/.test(l.href);
     return '<a class="btn" href="' + esc(l.href) + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + (l.download ? ' download="' + esc(l.download) + '"' : "") + ">" +
       '<span class="ic">' + svg(l.icon) + "</span>" +
       '<span class="txt"><strong>' + esc(l.label) + "</strong><small>" + esc(l.sub) + "</small></span>" +
       svg("go", "go") + "</a>";
   }).join("");
+  nav.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-copy]");
+    if (!b) return;
+    var small = b.querySelector("small"), was = small.textContent;
+    var done = function (msg) { small.textContent = msg; setTimeout(function () { small.textContent = was; }, 1800); };
+    try { navigator.clipboard.writeText(b.dataset.copy).then(function () { done("copied: " + b.dataset.copy); }, function () { done(b.dataset.copy); }); }
+    catch (x) { done(b.dataset.copy); }
+  });
 
   // The face: blinks, watches the pointer, can be thrown (and has feelings about it), and wanders off when nobody's around.
   var face = document.getElementById("face");

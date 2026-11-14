@@ -99,7 +99,8 @@ body {
 /* Moods are the eye pills clipped, as in the app's faces: happy keeps the top half, bored the bottom half,
    angry and sad the bottom two thirds under a cut tilted 22 degrees (in toward the nose for angry, out for sad). */
 .eyes i {
-  --clip: polygon(-150% -50%, 250% -50%, 250% 150%, -150% 150%);
+  /* No clip at rest: an oversized clip under the parent's drop-shadow drew dark boxes round the eyes in some browsers. */
+  --clip: none;
   display: block;
   width: 15px;
   height: 32px;

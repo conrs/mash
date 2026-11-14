@@ -91,8 +91,6 @@ body {
 .eyes {
   display: flex;
   gap: 22px;
-  /* The glow lives here, outside the clip, so it follows whatever shape a mood leaves (no hard line). */
-  filter: drop-shadow(0 0 6px var(--eye)) drop-shadow(0 0 2px var(--eye));
   transform: translate(var(--lx, 0px), var(--ly, 0px));
   transition: transform .25s ease-out;
 }
@@ -106,6 +104,9 @@ body {
   height: 32px;
   border-radius: 99px;
   background: var(--eye);
+  /* The glow is a plain box-shadow on each pill: Safari drew a drop-shadow filter on the row as dark boxes. A mood's clip
+     cuts the glow with it. */
+  box-shadow: 0 0 6px var(--eye), 0 0 12px var(--eye);
   clip-path: var(--clip);
   transition: transform .07s, scale .15s ease-out, clip-path .18s ease-out, background .4s;
 }

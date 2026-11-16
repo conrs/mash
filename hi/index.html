@@ -74,7 +74,7 @@ body {
   -webkit-user-select: none;
   pointer-events: auto;
 }
-#face.free { position: fixed; left: 0; top: 0; z-index: 1; will-change: transform; }
+#face.free { position: absolute; left: 0; top: 0; z-index: 1; will-change: transform; }
 #face.held { z-index: 3; cursor: grabbing; }
 .body {
   position: absolute;
@@ -97,7 +97,7 @@ body {
 /* Moods are the eye pills clipped, as in the app's faces: happy keeps the top half, bored the bottom half,
    angry and sad the bottom two thirds under a cut tilted 22 degrees (in toward the nose for angry, out for sad). */
 .eyes i {
-  /* No clip at rest: an oversized clip under the parent's drop-shadow drew dark boxes round the eyes in some browsers. */
+  /* No clip at rest: an oversized clip looked wrong under the glow in Safari. */
   --clip: none;
   display: block;
   width: 15px;
@@ -485,14 +485,16 @@ button.btn { width: 100%; font: inherit; cursor: pointer; }
   function size() { return face.offsetWidth || 112; }
   function bounds() {
     var s = size();
-    return { w: Math.max(0, document.documentElement.clientWidth - s), h: Math.max(0, window.innerHeight - s) };
+    // Page coordinates: a loose face stays where it is on the page while you scroll (matt, 2026-11-16).
+    var de = document.documentElement;
+    return { w: Math.max(0, de.clientWidth - s), h: Math.max(0, Math.max(de.scrollHeight, window.innerHeight) - s) };
   }
   function place() { face.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0)"; }
 
   function detach() {
     if (mode !== "home") return;
     var r = slot.getBoundingClientRect();
-    x = r.left; y = r.top;
+    x = r.left + window.scrollX; y = r.top + window.scrollY;
     face.classList.add("free");
     slot.classList.add("away");
     document.body.appendChild(face);
@@ -520,7 +522,7 @@ button.btn { width: 100%; font: inherit; cursor: pointer; }
 
   function onHit(axis, speed, t) {
     var half = size() / 2;
-    ripple(x + half + (axis === "x" ? (vx > 0 ? -half : half) : 0), y + half + (axis === "y" ? (vy > 0 ? -half : half) : 0), speed / 1500);
+    ripple(x - window.scrollX + half + (axis === "x" ? (vx > 0 ? -half : half) : 0), y - window.scrollY + half + (axis === "y" ? (vy > 0 ? -half : half) : 0), speed / 1500);
     if (mode === "dvd" || speed < 380) return;
     flash(axis === "x" ? "squash-x" : "squash-y", 150);
     angryUntil = t + 250;
@@ -555,8 +557,9 @@ button.btn { width: 100%; font: inherit; cursor: pointer; }
       }
     } else if (mode === "back") {
       var r = slot.getBoundingClientRect(), kk = 1 - Math.exp(-6.5 * dt);
-      x += (r.left - x) * kk; y += (r.top - y) * kk;
-      if (Math.abs(r.left - x) < 0.6 && Math.abs(r.top - y) < 0.6) { attach(); return; }
+      var tx = r.left + window.scrollX, ty = r.top + window.scrollY;
+      x += (tx - x) * kk; y += (ty - y) * kk;
+      if (Math.abs(tx - x) < 0.6 && Math.abs(ty - y) < 0.6) { attach(); return; }
     }
     place();
   }
@@ -601,14 +604,14 @@ button.btn { width: 100%; font: inherit; cursor: pointer; }
     face.classList.add("held");
     setMood("surprised");
     try { face.setPointerCapture(e.pointerId); } catch (_) {}
-    grab.ox = e.clientX - x; grab.oy = e.clientY - y; grab.moved = 0;
+    grab.ox = e.pageX - x; grab.oy = e.pageY - y; grab.moved = 0;
     grab.samples = [{ t: e.timeStamp, x: e.clientX, y: e.clientY }];
   });
   face.addEventListener("pointermove", function (e) {
     if (mode !== "drag") return;
     var b = bounds();
-    x = Math.min(b.w, Math.max(0, e.clientX - grab.ox));
-    y = Math.min(b.h, Math.max(0, e.clientY - grab.oy));
+    x = Math.min(b.w, Math.max(0, e.pageX - grab.ox));
+    y = Math.min(b.h, Math.max(0, e.pageY - grab.oy));
     grab.moved = Math.max(grab.moved, Math.hypot(e.clientX - grab.samples[0].x, e.clientY - grab.samples[0].y));
     grab.samples.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
     while (grab.samples.length > 2 && e.timeStamp - grab.samples[0].t > 90) grab.samples.shift();
